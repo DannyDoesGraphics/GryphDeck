@@ -19,12 +19,18 @@ def state_data():
     state = current_app.extensions["state_manager"]
     return {
         "game": state.game_info.name,
+        "side_names": state.game_info.sides,
         "game_key": state.game_key,
         "games": available_games(),
         "scene": state.current_scene,
         "teams": [state.match_info.team_info(1), state.match_info.team_info(2)],
         "ban_options": state.game_info.ban_options(),
         "bans": state.bans,
+        "draft": None if state.draft is None else {
+            **state.draft,
+            "choices": state.game_info.chars,
+        },
+        "sides": state.sides,
         "components": {
             scene: [
                 {"name": name, "position": position, "enabled": enabled}
@@ -108,7 +114,20 @@ def update_state():
                 operation = state.disable_component if component[2] else state.enable_component
                 operation(scene_name, name)
             elif action == "swap_sides":
-                match.swap_sides()
+                state.swap_sides()
+            elif action == "set_draft_slot":
+                hero = data.get("hero")
+                state.set_draft_slot(data.get("team"), data.get("kind"), data.get("slot"), hero or None)
+            elif action == "update_draft":
+                changes = {key: data[key] for key in ("label", "first_pick") if key in data}
+                if not changes:
+                    raise ValueError("Provide a match label or first pick.")
+                state.set_draft_details(**changes)
+            elif action == "update_sides":
+                changes = {key: data[key] for key in ("left", "known", "auto") if key in data}
+                if not changes:
+                    raise ValueError("Provide left, known, or auto.")
+                state.set_sides(**changes)
             elif action in ("add_ban", "remove_ban"):
                 state.update_ban(data.get("kind"), required_text(data, "name"), remove=action == "remove_ban")
             elif action in ("update_team", "add_player", "remove_player"):
@@ -130,7 +149,7 @@ def update_state():
                     player = required_text(data, "player")
                     if action == "add_player":
                         match.add_player(team, player)
-                    elif not match.remove_player(team, player):
+                    elif not state.remove_player(team, player):
                         raise ValueError("Player is no longer on this team.")
             else:
                 raise ValueError("Unknown action.")
@@ -139,10 +158,30 @@ def update_state():
         except (OSError, KeyError, TypeError, StopIteration):
             current_app.logger.exception("Could not load game configuration")
             return jsonify(error="Could not load that game JSON. Check its configuration."), 400
+        if action in ("add_player", "remove_player", "set_draft_slot", "update_sides"):
+            # A roster or draft fix (or detection turned back on) can settle the sides right away.
+            state.redetect_sides()
         scene_json = state.create_post_request()
         print(scene_json)
         publish_overlay(scene_json)
         return jsonify(state_data())
+
+@main.post("/deadlock")
+def deadlock_event():
+    """Match phase and side reports from tools/deadlock/spectator.py."""
+    data = request.get_json(silent=True)
+    with current_app.extensions["state_lock"]:
+        state = current_app.extensions["state_manager"]
+        if state.game_info.name != "Deadlock":
+            return jsonify(ignored=True, reason="The loaded game is not Deadlock.")
+        try:
+            changed = state.apply_deadlock_event(data)
+        except ValueError as error:
+            return jsonify(error=str(error)), 400
+        if changed:
+            publish_overlay(state.create_post_request())
+        return jsonify(changed=changed, sides=state.sides)
+
 
 SCENES = {
     "idle": {
@@ -176,7 +215,7 @@ SCENES = {
 def index():
     return jsonify(
         name="GryphDeck API",
-        endpoints=["/api/health", "/api/state", "/api/control", "/api/overlay", "/api/scenes/<scene>"],
+        endpoints=["/api/health", "/api/state", "/api/control", "/api/overlay", "/api/deadlock", "/api/scenes/<scene>"],
     )
 
 

@@ -10,10 +10,12 @@ import unittest
 if __package__:
     from .GameInfo import GameInfo
     from .MatchInfo import MatchInfo
+    from . import SideDetection
     from .StateManager import StateManager
 else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
+    import SideDetection
     from StateManager import StateManager
 
 
@@ -231,6 +233,215 @@ class StateManagerTests(unittest.TestCase):
         self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["data"]["hero_bans"], [])
         self.state.load_game("Miscellaneous")
         self.assertEqual(json.loads(self.state.create_post_request())["scenes"], {"idle": [], "pregame": [], "ingame": []})
+
+    def test_draft_slots_are_per_team_and_unique(self):
+        self.assertIsNone(self.state.draft)
+        with self.assertRaises(ValueError):
+            self.state.set_draft_slot(1, "picks", 0, "Jett")
+        self.state.load_game("Deadlock")
+        self.assertEqual(self.state.draft["teams"][0], {"picks": [None] * 6, "bans": [None] * 2})
+        self.state.set_draft_slot(1, "picks", 0, " rat king ")
+        self.state.set_draft_slot(2, "bans", 1, "Mo & Krill")
+        self.state.set_draft_slot(1, "picks", 0, "Rat King")  # same slot again is fine
+        for team, kind, slot, hero in ((2, "picks", 0, "Rat King"), (1, "bans", 0, "mo & krill"),
+                                       (1, "picks", 6, "Haze"), (3, "picks", 0, "Haze"),
+                                       (1, "draws", 0, "Haze"), (1, "picks", 1, "Jett"), (1, "picks", "0", "Haze")):
+            with self.subTest(team=team, kind=kind, slot=slot, hero=hero), self.assertRaises(ValueError):
+                self.state.set_draft_slot(team, kind, slot, hero)
+        self.state.set_draft_slot(1, "picks", 0, None)
+        self.state.set_draft_slot(2, "picks", 0, "Rat King")
+        self.assertEqual(self.state.draft["teams"][0]["picks"][0], None)
+        self.assertEqual(self.state.draft["teams"][1], {"picks": ["Rat King"] + [None] * 5, "bans": [None, "Mo & Krill"]})
+
+    def test_draft_post_request_and_side_swap(self):
+        self.state.load_game("Deadlock")
+        for team in (1, 2):
+            self.state.match_info.update_team_name(team, f"Team {team}")
+            self.state.match_info.add_player(team, f"Player {team}")
+        self.state.set_draft_slot(1, "picks", 0, "Haze")
+        self.state.set_draft_slot(2, "bans", 0, "Violet")
+        self.state.set_draft_details(label="Grand Final", first_pick=1)
+        with self.assertRaises(ValueError):
+            self.state.set_draft_details(first_pick=3, label="Not applied")
+        self.assertEqual(self.state.draft["label"], "Grand Final")
+        self.state.enable_component("pregame", "Hero Draft")
+        data = json.loads(self.state.create_post_request())["scenes"]["pregame"][0]["data"]
+        self.assertEqual((data["label"], data["first_pick"]), ("Grand Final", 1))
+        self.assertEqual(data["teams"][0], {"name": "Team 1", "score": 0, "players": ["Player 1"],
+                                            "picks": ["Haze"] + [None] * 5, "bans": [None, None]})
+        self.state.enable_component("ingame", "Deadlock Top Bar")
+        top_bar = json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["data"]
+        self.assertEqual({**top_bar, "scene": "pregame"}, data)
+        self.state.swap_sides()
+        swapped = json.loads(self.state.create_post_request())["scenes"]["pregame"][0]["data"]
+        self.assertEqual(swapped["teams"], data["teams"][::-1])
+        self.assertEqual(swapped["first_pick"], 2)
+        self.state.load_game("Deadlock")
+        self.assertEqual(self.state.draft["teams"][0]["picks"], [None] * 6)
+        self.assertEqual(self.state.match_info.team_info(1)["Name"], "Team 2")
+
+    def test_removing_a_player_keeps_later_players_picks(self):
+        self.state.load_game("Deadlock")
+        for name, hero in (("Ann", "Haze"), ("Bo", "Ivy"), ("Cy", "Kelvin")):
+            self.state.match_info.add_player(1, name)
+            self.state.set_draft_slot(1, "picks", len(self.state.match_info.players[0]) - 1, hero)
+        self.assertTrue(self.state.remove_player(1, "Bo"))
+        self.assertEqual(self.state.match_info.players[0], ["Ann", "Cy"])
+        self.assertEqual(self.state.draft["teams"][0]["picks"], ["Haze", "Kelvin"] + [None] * 4)
+        self.assertFalse(self.state.remove_player(1, "Bo"))
+
+
+def deadlock_teams(side1, side2, heroes1=(), heroes2=()):
+    """A side reporter "teams" event: player names (and heroes, "#" while undecided) per side."""
+    def players(names, heroes):
+        return [{"name": name, "hero": heroes[i] if i < len(heroes) else "#"} for i, name in enumerate(names)]
+    return {"type": "teams", "teams": [{"side": 1, "players": players(side1, heroes1)},
+                                       {"side": 2, "players": players(side2, heroes2)}]}
+
+
+class SideDetectionTests(unittest.TestCase):
+    def test_normalize_ignores_case_accents_punctuation_and_the(self):
+        self.assertEqual(SideDetection.normalize("The Doorman"), "doorman")
+        self.assertEqual(SideDetection.normalize("  Zo\u00eb_X!  "), "zoex")
+        self.assertEqual(SideDetection.normalize("#"), "")
+
+    def test_player_names_and_drafted_heroes_each_decide(self):
+        sides = SideDetection.parse_teams(deadlock_teams(["[GG] Danny", "Ash"], ["Rook"], ["Haze"], ["Abrams"])["teams"])
+        self.assertEqual(SideDetection.detect(sides, [["danny"], ["rook"]], [[], []]), ("keep", "player names", False))
+        self.assertEqual(SideDetection.detect(sides, [["Rook"], ["Danny"]], [[], []]), ("swap", "player names", False))
+        # "Ash" is too short to match inside another name, so only exact names count.
+        self.assertIsNone(SideDetection.detect(sides, [["Ashley"], []], [[], []])[0])
+        # Roster player N drafted pick N: hero picks find the sides without any name matching.
+        self.assertEqual(SideDetection.detect(sides, [["Nobody"], []], [["Abrams", None], ["Haze"]]),
+                         ("swap", "hero picks", False))
+        self.assertEqual(SideDetection.detect(sides, [["Danny"], ["Rook"]], [["Haze"], ["Abrams"]]),
+                         ("keep", "player names and hero picks", False))
+
+    def test_mirrored_heroes_in_show_matches_say_nothing(self):
+        sides = SideDetection.parse_teams(deadlock_teams(["Bot A", "Bot B"], ["Bot C", "Bot D"],
+                                                         ["Haze", "Abrams"], ["Haze", "Abrams"])["teams"])
+        decision, reason, stuck = SideDetection.detect(sides, [["Danny"], ["Rook"]], [["Haze", "Abrams"], ["Abrams", "Haze"]])
+        self.assertEqual((decision, stuck), (None, True))
+        self.assertEqual(reason, "no names match, picks are on both sides")
+        # One hero only one side plays is enough.
+        sides = SideDetection.parse_teams(deadlock_teams(["Bot A", "Bot B"], ["Bot C", "Bot D"],
+                                                         ["Haze", "Abrams"], ["Haze", "Wraith"])["teams"])
+        self.assertEqual(SideDetection.detect(sides, [["Danny"], ["Rook"]], [["Haze", "Wraith"], ["Haze", "Abrams"]])[0], "swap")
+
+    def test_names_and_heroes_pointing_opposite_ways_is_not_guessed(self):
+        sides = SideDetection.parse_teams(deadlock_teams(["Danny"], ["Rook"], ["Haze"], ["Abrams"])["teams"])
+        decision, reason, stuck = SideDetection.detect(sides, [["Danny"], ["Rook"]], [["Abrams"], ["Haze"]])
+        self.assertEqual((decision, stuck), (None, True))
+        self.assertEqual(reason, "names and picks disagree")
+
+    def test_waits_while_the_game_can_still_show_more(self):
+        sides = SideDetection.parse_teams([{"side": 0, "players": []}])
+        self.assertEqual(SideDetection.detect(sides, [["a"], ["b"]], [[], []])[2], False)
+        sides = SideDetection.parse_teams(deadlock_teams([], [])["teams"])
+        self.assertIsNone(SideDetection.detect(sides, [["a"], ["b"]], [[], []])[0])
+        # Heroes still being chosen ("#"): no evidence yet, but not stuck.
+        sides = SideDetection.parse_teams(deadlock_teams(["Bot A"], ["Bot B"])["teams"])
+        self.assertEqual(SideDetection.detect(sides, [["Danny"], ["Rook"]], [["Haze"], ["Abrams"]]),
+                         (None, "no names match, no picks in game", False))
+
+    def test_rejects_malformed_reports(self):
+        for teams in (None, {}, [{"side": "1"}], [{"side": 1, "players": "x"}],
+                      [{"side": 1, "players": [{"name": 3}]}], [{"side": 1, "players": [{"name": "x" * 129}]}],
+                      [{"side": 1, "players": [{}] * 13}], [{"side": 1}] * 5):
+            with self.subTest(teams=teams), self.assertRaises(ValueError):
+                SideDetection.parse_teams(teams)
+
+
+class DeadlockSidesTests(unittest.TestCase):
+    def setUp(self):
+        self.state = StateManager("Deadlock")
+        for team, names in ((1, ["Danny", "Kestrel"]), (2, ["Rook", "Vale"])):
+            self.state.match_info.update_team_name(team, f"Team {team}")
+            for name in names:
+                self.state.match_info.add_player(team, name)
+
+    def test_unknown_until_detected_then_swaps_once(self):
+        self.assertFalse(self.state.sides["known"])
+        self.assertFalse(self.state.apply_deadlock_event({"type": "state", "state": "HeroSelection", "id": 3}))
+        self.assertFalse(self.state.apply_deadlock_event(deadlock_teams([], [])))
+        self.assertIn("waiting", self.state.sides["status"])
+        self.assertTrue(self.state.apply_deadlock_event(deadlock_teams(["Rook", "Vale"], ["Danny", "Kestrel"])))
+        self.assertTrue(self.state.sides["known"])
+        self.assertEqual(self.state.sides["status"], "Detected from player names; teams swapped.")
+        self.assertEqual(self.state.match_info.team_info(1)["Name"], "Team 2")
+        # Further reports in the same match change nothing.
+        self.assertFalse(self.state.apply_deadlock_event(deadlock_teams(["Danny"], ["Rook"])))
+        self.assertEqual(self.state.match_info.team_info(1)["Name"], "Team 2")
+        self.state.enable_component("pregame", "Hero Draft")
+        self.state.enable_component("ingame", "Deadlock Top Bar")
+        data = json.loads(self.state.create_post_request())
+        flags = [component["data"]["sides_known"] for scene in data["scenes"].values()
+                 for component in scene if "teams" in component["data"]]
+        self.assertEqual(flags, [True, True])
+
+    def test_new_match_resets_sides_but_in_game_phases_do_not(self):
+        self.state.apply_deadlock_event(deadlock_teams(["Danny"], ["Rook"]))
+        self.assertTrue(self.state.sides["known"])
+        self.assertFalse(self.state.apply_deadlock_event({"type": "state", "state": "GameInProgress", "id": 7}))
+        self.assertTrue(self.state.apply_deadlock_event({"type": "state", "state": "WaitingForPlayersToJoin", "id": 2}))
+        self.assertFalse(self.state.sides["known"])
+        self.state.apply_deadlock_event(deadlock_teams(["Danny"], ["Rook"]))
+        self.assertFalse(self.state.apply_deadlock_event({"type": "state", "state": "HeroSelection", "id": 3}))
+        self.assertTrue(self.state.sides["known"])
+
+    def test_operator_override_and_manual_mode(self):
+        self.state.set_sides(auto=False)
+        self.state.apply_deadlock_event(deadlock_teams(["Rook"], ["Danny"]))
+        self.state.apply_deadlock_event({"type": "state", "state": "WaitingForPlayersToJoin", "id": 2})
+        self.assertFalse(self.state.sides["known"])
+        self.assertEqual(self.state.match_info.team_info(1)["Name"], "Team 1")
+        self.state.set_sides(known=True)
+        self.assertEqual(self.state.sides["status"], "Set by hand.")
+        for changes in ({"known": "yes"}, {"auto": 1}, {"left": 3}, {"left": True}, {"left": "2"}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                self.state.set_sides(**changes)
+        for event in (None, {"type": "nope"}, {"type": "state", "state": "x", "id": "3"}):
+            with self.subTest(event=event), self.assertRaises(ValueError):
+                self.state.apply_deadlock_event(event)
+
+    def test_draft_fix_settles_the_last_report_at_once(self):
+        report = deadlock_teams(["Bot A"], ["Bot B"], ["Haze"], ["Wraith"])
+        self.state.apply_deadlock_event(report)
+        self.assertTrue(self.state.sides["attention"])
+        self.state.set_draft_slot(1, "picks", 0, "Wraith")
+        self.assertTrue(self.state.redetect_sides())
+        self.assertEqual((self.state.sides["known"], self.state.sides["attention"]), (True, False))
+        self.assertEqual(self.state.sides["status"], "Detected from hero picks; teams swapped.")
+        self.assertEqual(self.state.match_info.team_info(1)["Players"], ["Rook", "Vale"])
+        # A new match forgets the report.
+        self.state.apply_deadlock_event({"type": "state", "state": "WaitingForPlayersToJoin", "id": 2})
+        self.assertFalse(self.state.redetect_sides())
+        self.assertFalse(self.state.sides["known"])
+
+    def test_undecidable_match_asks_the_operator_and_keeps_rosters(self):
+        # Show match: nobody's in-game name is on the rosters and both sides play the same heroes.
+        for team, picks in ((0, ["Haze", "Abrams"]), (1, ["Abrams", "Haze"])):
+            self.state.draft["teams"][team]["picks"][:2] = picks
+        report = deadlock_teams(["Bot A", "Bot B"], ["Bot C", "Bot D"], ["#", "#"], ["#", "#"])
+        self.state.apply_deadlock_event(report)
+        self.assertFalse(self.state.sides["attention"])
+        self.assertTrue(self.state.sides["status"].startswith("Detecting:"))
+        report = deadlock_teams(["Bot A", "Bot B"], ["Bot C", "Bot D"], ["Haze", "Abrams"], ["Abrams", "Haze"])
+        self.assertFalse(self.state.apply_deadlock_event(report))
+        self.assertFalse(self.state.sides["known"])
+        self.assertTrue(self.state.sides["attention"])
+        self.assertEqual(self.state.sides["status"],
+                         "Can't tell sides: no names match, picks are on both sides.")
+        self.assertEqual(self.state.match_info.team_info(1)["Players"], ["Danny", "Kestrel"])
+        # The operator says the left team is the Archmother: the teams swap and colour.
+        self.state.set_sides(left=2)
+        self.assertEqual((self.state.sides["known"], self.state.sides["attention"]), (True, False))
+        self.assertEqual(self.state.match_info.team_info(1)["Players"], ["Rook", "Vale"])
+        self.assertEqual(self.state.draft["teams"][0]["picks"][:2], ["Abrams", "Haze"])
+        self.state.set_sides(known=False)
+        self.state.set_sides(left=1)
+        self.assertEqual(self.state.match_info.team_info(1)["Players"], ["Rook", "Vale"])
+        self.assertTrue(self.state.sides["known"])
 
 
 class PrintInfoTests(unittest.TestCase):

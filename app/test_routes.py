@@ -96,7 +96,7 @@ class ControlTests(unittest.TestCase):
     def test_ban_options_follow_game_components_and_catalogs(self):
         for game, maps, heroes in (("Valorant", True, False), ("CSGO", True, False),
                                    ("Overwatch", True, True), ("MarvelRivals", True, True),
-                                   ("Miscellaneous", False, False)):
+                                   ("Miscellaneous", False, False), ("Deadlock", False, False)):
             with self.subTest(game=game):
                 state = self.action("load_game", game=game)
                 self.assertEqual(state["ban_options"]["map"], {"supported": maps, "choices": self.manager.game_info.maps})
@@ -121,6 +121,34 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(state["bans"], {"map": ["King's Row"], "hero": []})
         state = self.action("remove_ban", kind="map", name="King's Row")
         self.assertEqual(state["bans"], {"map": [], "hero": []})
+
+    def test_draft_actions_update_state_and_reject_bad_input(self):
+        initial = self.client.get("/api/state").get_json()
+        self.assertIsNone(initial["draft"])
+        self.assertEqual(initial["side_names"], ["Left", "Right"])
+        state = self.action("load_game", game="Deadlock")
+        self.assertIn("Rat King", state["draft"]["choices"])
+        self.assertEqual(state["side_names"], ["Hidden King", "Archmother"])
+        self.action("set_draft_slot", team=1, kind="picks", slot=2, hero="Baba")
+        self.action("set_draft_slot", team=2, kind="bans", slot=0, hero="Solomon")
+        state = self.action("update_draft", label="  Upper Final  ", first_pick=2)
+        self.assertEqual((state["draft"]["label"], state["draft"]["first_pick"]), ("Upper Final", 2))
+        self.assertEqual(state["draft"]["teams"][0]["picks"][2], "Baba")
+        before = self.client.get("/api/state").get_json()["draft"]
+        for payload in ({"action": "set_draft_slot", "team": 2, "kind": "picks", "slot": 0, "hero": "Baba"},
+                        {"action": "set_draft_slot", "team": 1, "kind": "picks", "slot": 9, "hero": "Haze"},
+                        {"action": "update_draft"},
+                        {"action": "update_draft", "first_pick": None},
+                        {"action": "update_draft", "label": "x" * 81}):
+            with self.subTest(payload=payload):
+                response = self.client.post("/api/control", json=payload)
+                self.assertEqual(response.status_code, 400)
+        self.assertEqual(self.client.get("/api/state").get_json()["draft"], before)
+        state = self.action("set_draft_slot", team=1, kind="picks", slot=2, hero="")
+        self.assertIsNone(state["draft"]["teams"][0]["picks"][2])
+        state = self.action("swap_sides")
+        self.assertEqual(state["draft"]["teams"][0]["bans"][0], "Solomon")
+        self.assertEqual(state["draft"]["first_pick"], 1)
 
     def test_invalid_bans_do_not_mutate_state(self):
         self.action("add_ban", kind="map", name="Ascent")
@@ -239,6 +267,44 @@ class ControlTests(unittest.TestCase):
         self.app.config["OVERLAY_POST_URL"] = "http://127.0.0.1:3005/api/overlay"
         self.action("update_team", team=1, score=2)
         self.assertEqual(self.post_overlay.call_args.args[0].full_url, self.app.config["OVERLAY_POST_URL"])
+
+
+    def test_deadlock_events_detect_sides_and_publish(self):
+        event = {"type": "teams", "teams": [{"side": 1, "players": [{"name": "Rook", "hero": "#"}]},
+                                            {"side": 2, "players": [{"name": "Danny", "hero": "#"}]}]}
+        self.assertTrue(self.client.post("/api/deadlock", json=event).get_json()["ignored"])
+        self.action("load_game", game="Deadlock")
+        self.action("add_player", team=1, player="Danny")
+        state = self.action("add_player", team=2, player="Rook")
+        self.assertFalse(state["sides"]["known"])
+        self.post_overlay.reset_mock()
+        result = self.client.post("/api/deadlock", json=event).get_json()
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["sides"]["known"])
+        self.assertEqual(self.post_overlay.call_count, 1)
+        state = self.client.get("/api/state").get_json()
+        self.assertEqual(state["teams"][0]["Players"], ["Rook"])
+        self.assertFalse(self.client.post("/api/deadlock", json=event).get_json()["changed"])
+        for bad in ({"type": "teams", "teams": "x"}, {"type": "other"}, ["x"]):
+            with self.subTest(bad=bad):
+                self.assertEqual(self.client.post("/api/deadlock", json=bad).status_code, 400)
+        state = self.action("update_sides", known=False, auto=False)
+        self.assertEqual((state["sides"]["known"], state["sides"]["auto"]), (False, False))
+        # A report nobody matches waits for the operator; a roster fix settles it at once.
+        self.action("update_sides", auto=True)
+        self.client.post("/api/deadlock", json={"type": "state", "state": "WaitingForPlayersToJoin", "id": 2})
+        stranger ={"type": "teams", "teams": [{"side": 1, "players": [{"name": "Bot A", "hero": "Haze"}]},
+                                               {"side": 2, "players": [{"name": "Bot B", "hero": "Wraith"}]}]}
+        self.assertTrue(self.client.post("/api/deadlock", json=stranger).get_json()["sides"]["attention"])
+        state = self.action("add_player", team=2, player="Bot A")
+        self.assertEqual((state["sides"]["known"], state["teams"][0]["Players"]), (True, ["Danny", "Bot A"]))
+        self.action("update_sides", known=False, auto=False)
+        state = self.action("update_sides", left=2)
+        self.assertEqual((state["sides"]["known"], state["teams"][0]["Players"]), (True, ["Rook"]))
+        response = self.client.post("/api/control", json={"action": "update_sides", "left": 0})
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post("/api/control", json={"action": "update_sides"})
+        self.assertEqual(response.status_code, 400)
 
 
 if __name__ == "__main__":

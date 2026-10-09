@@ -6,6 +6,7 @@ let state;
 let requestQueue = Promise.resolve();
 let swapping = false;
 const teamSavers = [];
+const unsavedTeams = new Set();
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -54,9 +55,100 @@ function render({ teams = false, game = false } = {}) {
       card.querySelector('[name="score"]').value = team.Score;
     }
     card.querySelector(".player-count").textContent = `${team.Players.length} player${team.Players.length === 1 ? "" : "s"}`;
-    const roster = card.querySelector(".players");
-    roster.replaceChildren(...team.Players.map((player, playerIndex) => {
-      const row = element("li", "player");
+    renderRoster(card, team, index);
+  });
+  // Sides by their in-game names (Deadlock: Hidden King left, Archmother right) once known,
+  // like the overlays, which stay grey until then.
+  document.body.dataset.game = state.game;
+  document.body.toggleAttribute("data-sides-known", state.sides.known);
+  document.querySelectorAll("[data-side-name]").forEach(label => {
+    const name = sideNames()[label.dataset.sideName - 1];
+    if (label.classList.contains("side-caption")) label.textContent = name.toUpperCase();
+    else if (label.tagName === "OPTION") label.textContent = name;
+    else label.textContent = ["Left", "Right"].includes(name) ? `${name} team` : name;
+  });
+  renderBans({ game });
+  renderDraft({ game });
+  renderSides();
+}
+
+const sidesSection = document.querySelector(".sides-section");
+
+function sideNames() {
+  return state.sides.known ? state.side_names : ["Left", "Right"];
+}
+
+function renderSides() {
+  const sides = state.sides;
+  sidesSection.hidden = state.game !== "Deadlock";
+  const label = sidesSection.querySelector(".sides-state");
+  label.textContent = sides.known ? "Known" : "Grey";
+  label.classList.toggle("known", sides.known);
+  const feedback = sidesSection.querySelector(".sides-feedback");
+  feedback.textContent = sides.status;
+  feedback.classList.toggle("error", sides.attention);
+  sidesSection.querySelector("#sides-auto").setAttribute("aria-pressed", String(sides.auto));
+  sidesSection.querySelector("#sides-grey").disabled = !sides.known;
+}
+
+sidesSection.querySelectorAll("[data-left]").forEach(button => button.addEventListener("click", async event => {
+  const target = event.currentTarget;
+  const left = Number(target.dataset.left);
+  if (left === 1) {
+    await send({ action: "update_sides", left }, "Sides set.");
+    target.focus();
+    return;
+  }
+  // Archmother on the left swaps the teams, so save team edits first like Swap sides.
+  if (swapping) return;
+  swapping = true;
+  workspace.disabled = true;
+  try {
+    const saved = await Promise.all(teamSavers.map(save => save()));
+    if (saved.every(Boolean)) {
+      await send({ action: "update_sides", left }, "Sides set; teams swapped.", { teams: true, background: true });
+    } else {
+      notice.className = "error";
+      notice.textContent = "Save or correct team details first.";
+    }
+  } finally {
+    swapping = false;
+    workspace.disabled = false;
+    target.focus();
+  }
+}));
+sidesSection.querySelector("#sides-grey").addEventListener("click", async event => {
+  await send({ action: "update_sides", known: false }, "Team colours set to grey.");
+  event.currentTarget.focus();
+});
+sidesSection.querySelector("#sides-auto").addEventListener("click", async event => {
+  const auto = !state.sides.auto;
+  await send({ action: "update_sides", auto }, auto ? "Side detection on." : "Side detection off.");
+  event.currentTarget.focus();
+});
+
+const draftForm = document.querySelector(".draft-form");
+
+// One row per player with their hero pick (roster player N drafted pick N), plus open pick slots.
+function renderRoster(card, team, index) {
+  const picks = state.draft?.teams[index].picks ?? [];
+  const roster = card.querySelector(".players");
+  roster.classList.toggle("with-picks", picks.length > 0);
+  card.querySelector(".roster-title").textContent = picks.length ? "Players and picks" : "Player roster";
+  // Rebuild only when the rows change, so a focused hero select is not replaced.
+  const layout = JSON.stringify([team.Players, picks.length]);
+  if (roster.dataset.layout === layout) return;
+  roster.dataset.layout = layout;
+  const rows = Math.max(team.Players.length, picks.length);
+  roster.replaceChildren(...Array.from({ length: rows }, (_, slot) => {
+    const player = team.Players[slot];
+    const row = element("li", "player");
+    row.append(
+      element("span", "player-index", String(slot + 1).padStart(2, "0")),
+      element("span", player === undefined ? "player-name open-slot" : "player-name", player ?? "No player"),
+    );
+    if (slot < picks.length) row.append(heroSelect(index + 1, "picks", slot, `${player ?? `Pick ${slot + 1}`} hero`));
+    if (player !== undefined) {
       const remove = element("button", "remove-player", "Remove");
       remove.type = "button";
       remove.setAttribute("aria-label", `Remove ${player} from team ${index + 1}`);
@@ -64,12 +156,85 @@ function render({ teams = false, game = false } = {}) {
         await send({ action: "remove_player", team: index + 1, player }, "Player removed.");
         card.querySelector('[name="player"]').focus();
       });
-      row.append(element("span", "player-index", String(playerIndex + 1).padStart(2, "0")), element("span", "player-name", player), remove);
-      return row;
-    }));
-    if (!team.Players.length) roster.append(element("li", "empty-roster", "No players added."));
+      row.append(remove);
+    }
+    return row;
+  }));
+  if (!rows) roster.append(element("li", "empty-roster", "No players added."));
+}
+
+function heroSelect(team, kind, slot, label) {
+  const select = element("select", "hero-select");
+  select.dataset.draftTeam = team;
+  select.dataset.kind = kind;
+  select.dataset.slot = slot;
+  select.setAttribute("aria-label", label);
+  select.addEventListener("change", async () => {
+    const success = await send(
+      { action: "set_draft_slot", team, kind, slot, hero: select.value || null },
+      `${select.value || "Slot"} ${select.value ? (kind === "picks" ? "picked" : "banned") : "cleared"}.`,
+    );
+    draftFeedback(success);
+    document.querySelector(`.hero-select[data-draft-team="${team}"][data-kind="${kind}"][data-slot="${slot}"]`)?.focus();
   });
-  renderBans({ game });
+  return select;
+}
+
+function draftFeedback(success) {
+  const feedback = draftForm.querySelector(".draft-feedback");
+  feedback.textContent = notice.textContent;
+  feedback.classList.toggle("error", !success);
+}
+
+{
+  const form = draftForm;
+  let timer;
+  const saveLabel = async () => {
+    clearTimeout(timer);
+    if (form.elements.label.value.trim() === state.draft?.label) return;
+    draftFeedback(await send({ action: "update_draft", label: form.elements.label.value }, "Match label saved.", { background: true }));
+  };
+  form.elements.label.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(saveLabel, 450);
+  });
+  form.elements.label.addEventListener("change", saveLabel);
+  form.elements.first_pick.addEventListener("change", async () => {
+    draftFeedback(await send({ action: "update_draft", first_pick: Number(form.elements.first_pick.value) }, "First pick updated."));
+    form.elements.first_pick.focus();
+  });
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    saveLabel();
+  });
+}
+
+function renderDraft({ game }) {
+  const draft = state.draft;
+  draftForm.hidden = !draft;
+  document.querySelectorAll("[data-bans]").forEach(bans => { bans.hidden = !draft; });
+  if (!draft) return;
+  const form = draftForm;
+  if (game || document.activeElement !== form.elements.label) form.elements.label.value = draft.label;
+  form.elements.first_pick.value = String(draft.first_pick);
+  const taken = new Set(draft.teams.flatMap(team => [...team.picks, ...team.bans]).filter(Boolean));
+
+  draft.teams.forEach((team, index) => {
+    const slots = document.querySelector(`[data-bans="${index + 1}"] .ban-slots`);
+    if (game || slots.childElementCount !== team.bans.length) {
+      const name = sideNames()[index];
+      slots.replaceChildren(...team.bans.map((_, slot) => heroSelect(index + 1, "bans", slot, `${name} ban ${slot + 1}`)));
+    }
+  });
+  document.querySelectorAll(".hero-select").forEach(select => {
+    const current = draft.teams[select.dataset.draftTeam - 1][select.dataset.kind][Number(select.dataset.slot)] || "";
+    select.replaceChildren(new Option("—", ""), ...draft.choices.map(name => {
+      const option = new Option(name, name);
+      option.disabled = taken.has(name) && name !== current;
+      return option;
+    }));
+    select.value = current;
+  });
 }
 
 function renderBans({ game }) {
@@ -155,7 +320,7 @@ async function performRequest(payload, message, options) {
 
 document.querySelector("#game-form").addEventListener("submit", event => {
   event.preventDefault();
-  send({ action: "load_game", game: document.querySelector("#game").value }, "Game loaded. Components, map picks, and hero bans reset; teams retained.", { game: true });
+  send({ action: "load_game", game: document.querySelector("#game").value }, "Game loaded. Components, map picks, hero bans, and the draft reset; teams retained.", { game: true });
 });
 
 document.querySelectorAll("[data-ban-kind]").forEach(section => {
@@ -173,7 +338,7 @@ document.querySelector("#swap-sides").addEventListener("click", async () => {
   try {
     const saved = await Promise.all(teamSavers.map(save => save()));
     if (saved.every(Boolean)) {
-      await send({ action: "swap_sides" }, "Team names, scores, and rosters swapped.", { teams: true, background: true });
+      await send({ action: "swap_sides" }, "Team names, scores, rosters, and drafts swapped.", { teams: true, background: true });
     } else {
       notice.className = "error";
       notice.textContent = "Save or correct team details before swapping sides.";
@@ -218,6 +383,7 @@ document.querySelectorAll(".team-card").forEach(card => {
         success = await send(payload, `Team ${team} details saved.`, { background: true });
       }
       if (revision === currentRevision) {
+        if (success && !invalid) unsavedTeams.delete(team);
         status.textContent = !success ? "Not saved. Retry when connected." : invalid ? "Not saved. Enter a name and a score from 0 to 999." : "Saved automatically.";
         status.classList.toggle("error", !success || invalid);
         retry.hidden = success;
@@ -228,6 +394,7 @@ document.querySelectorAll(".team-card").forEach(card => {
   };
   teamSavers.push(save);
   form.addEventListener("input", () => {
+    unsavedTeams.add(team);
     revision += 1;
     clearTimeout(timer);
     status.textContent = "Unsaved changes...";
@@ -249,6 +416,28 @@ document.querySelectorAll(".team-card").forEach(card => {
   });
 });
 
+// Deadlock can change the state (side detection swaps teams), so follow the server while
+// nothing is being edited here. Team fields refresh unless one of them has focus.
+async function poll() {
+  try {
+    if (!swapping && workspace.getAttribute("aria-busy") !== "true") {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      if (response.ok) {
+        const next = await response.json();
+        if (JSON.stringify(next) !== JSON.stringify(state)) {
+          const editingTeams = document.activeElement?.closest(".team-form, .draft-form, .ban-form");
+          state = next;
+          render({ teams: !editingTeams && !unsavedTeams.size });
+        }
+      }
+    }
+  } catch {
+    // The status line reports failures from real edits; polling stays quiet.
+  } finally {
+    setTimeout(poll, 2000);
+  }
+}
+
 async function initialize() {
   try {
     const response = await fetch("/api/state", { cache: "no-store" });
@@ -259,6 +448,7 @@ async function initialize() {
     document.querySelector("#connection").textContent = "Server connected";
     document.querySelector("#connection").classList.add("connected");
     notice.textContent = `${state.game} loaded. Controls ready.`;
+    setTimeout(poll, 2000);
   } catch (error) {
     notice.className = "error";
     notice.textContent = error.message;

@@ -63,6 +63,10 @@ include their current values:
 - Score Pregame / Score Ingame: `teams`, with `name` and `score` for each team.
 - Map Picks: `map_picks`, in selection order.
 - Character Bans Pregame / Ingame: `hero_bans`, in selection order.
+- Hero Draft / Deadlock Top Bar: `label`, `first_pick` (0 = none, 1 = left, 2 = right), and
+  `teams` with `name`, `score`, `players`, `picks`, and `bans`. Pick and
+  ban arrays have one entry per slot, `null` while open; pick slot N belongs to
+  roster player N. `sides_known` is false until the in-game sides are known (teams show grey).
 
 Team arrays are ordered left then right. Static components such as Starting
 Soon and Sponsorships Badge receive only game and scene context, since no
@@ -111,6 +115,60 @@ For OBS use, `npm run build` followed by `npm start` avoids development tooling.
 The frontend `/UI` route opens the Flask control page.
 
 Frontend checks: run `npm test`, `npm run lint`, and `npm run build` in `frontend`.
+
+## Hero draft (Deadlock)
+
+Games whose JSON has a `draft` section (`{"picks": 6, "bans": 2}`) get per-team
+pick and ban slots. Deadlock uses this with the **Hero Draft** pregame component:
+a full-screen picks-and-bans board built for broadcasts without player cameras.
+On the control page, the **Hero draft** panel sets the match label, the first
+pick, and each slot's hero. A hero can fill only one slot across both teams,
+**Swap sides** moves each team's draft with it, and loading a game clears it.
+
+The **Deadlock Top Bar** ingame component is a full-width match band (Gryphon Gaming
+branding, both teams and their players, series score, and the match label) in the Hidden King
+and Archmother team colours. It is laid out for Deadlock's spectator HUD pushed down
+64px (at 1080p) by the GryphDeck spectator mod (below), and places each roster's player names above the
+game's hero portraits, so enter players in their in-game slot order. Positions come
+from the game's `citadel_hud_top_bar` layout (88-wide player columns in two 528-wide
+teams, centred), in 1920-wide units that scale with any 16:9 output.
+
+Hero portraits come from the local Deadlock install rather than the web. After
+a game update (for example, when newly released heroes get their full card art),
+re-export them:
+
+```powershell
+.\Scripts\python.exe tools\export_deadlock_heroes.py
+```
+
+It reads `pak01_dir.vpk` from the default Steam path (pass `--pak` for another
+library) and writes `frontend/public/static/Deadlock/Chars/<Hero>.png` for every
+hero in `app/json/Deadlock.json`. It also writes the team icons the Deadlock Top Bar uses
+(`Deadlock/Teams/hidden_king.svg` and `archmother.svg`) from the game's own SVGs. New heroes need a line in the script's
+`CODENAMES` table; the script lists card art it cannot match yet.
+
+## Deadlock spectator mod
+
+Start Deadlock for a broadcast with:
+
+```powershell
+.\start_deadlock.bat
+```
+
+It builds and installs the GryphDeck spectator mod, launches Deadlock, and reports the
+match to GryphDeck until the game closes. Your other addons are set aside and restored
+afterwards (`--keep-mods` keeps them).
+
+The mod (`tools/deadlock/build_mod.py`) bundles the latest Top Bar Plus from GameBanana
+(listed in `tools/deadlock/mods.json`), pushes the spectator HUD down 64px for the Deadlock
+Top Bar, hides spectator-only clutter (camera controls, player navigation, and the Map View
+label), and adds a script that reports each side's players and
+heroes.
+
+The Hero Draft and Deadlock Top Bar stay grey until the sides are known. GryphDeck matches
+roster names and draft picks against the game's players and heroes, swaps the teams if
+needed, and colours them. If it can't tell, the **Team sides** panel shows why; set the
+sides there by hand.
 
 ## Class tests
 

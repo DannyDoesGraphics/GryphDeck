@@ -72,3 +72,6 @@ node_modules/
 .next/
 out/
 npm-debug.log*
+
+# GryphDeck Deadlock mod builder downloads and output
+/tools/deadlock/.cache/

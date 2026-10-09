@@ -6,6 +6,8 @@ export const LOCATIONS = [
 
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
 const strings = value => Array.isArray(value) && value.every(item => typeof item === "string");
+// Draft slots hold a hero name, or null while the slot is open.
+const slots = value => Array.isArray(value) && value.every(item => item === null || typeof item === "string");
 
 export function validOverlay(document) {
   return object(document) && typeof document.game === "string" && object(document.scenes)
@@ -19,7 +21,11 @@ export function validOverlay(document) {
       if ("teams" in data && (!Array.isArray(data.teams) || data.teams.length !== 2
           || !data.teams.every(team => object(team) && typeof team.name === "string"
             && (!("score" in team) || (Number.isInteger(team.score) && team.score >= 0))
-            && (!("players" in team) || strings(team.players))))) return false;
+            && (!("players" in team) || strings(team.players))
+            && (!("picks" in team) || slots(team.picks))
+            && (!("bans" in team) || slots(team.bans))))) return false;
+      if ("first_pick" in data && ![0, 1, 2].includes(data.first_pick)) return false;
+      if ("sides_known" in data && typeof data.sides_known !== "boolean") return false;
       return true;
     }));
 }

@@ -45,7 +45,7 @@ main { max-width: 1496px; padding: 0 28px 20px; margin: 0 auto; }
 #notice { color: var(--light-gray); }
 #notice.error, .error { color: var(--accent-red); }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 20px; align-items: stretch; }
+.workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 20px; align-items: start; }
 .control-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel { background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 22px; min-width: 0; }
 .game-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px 24px; border-top: 3px solid var(--accent-red); }
@@ -79,22 +79,31 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .component[aria-pressed=true] .component-state { color: var(--accent-gold); }
 .hint, .control-note, .muted { color: var(--light-gray); font-size: .75rem; line-height: 1.6; }
 .control-note { padding: 0 2px; }
-.match-section { border-top: 3px solid var(--accent-red); }
+.match-section { border-top: 3px solid var(--accent-red); position: sticky; top: 16px; }
+.teams-panel { container-type: inline-size; }
 .match-section > .section-heading { margin-bottom: 20px; }
 #swap-sides { font-size: .78rem; padding: 8px 10px; }
-.match-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 16px 0 22px; border-bottom: 1px solid var(--border); }
+.match-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 16px 0 0; }
 .match-summary > div { display: flex; flex-direction: column; gap: 7px; min-width: 0; font-size: .85rem; overflow-wrap: anywhere; }
 .match-summary > div:last-child { text-align: right; }
 .side-caption { font-size: .65rem; letter-spacing: 1px; color: var(--light-gray); }
 .match-summary strong { font-family: "Antonio", sans-serif; font-size: 2.5rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .score-divider { color: var(--dark-gray); margin: 0 8px; }
-.team-card { padding-top: 24px; min-width: 0; }
-.team-card + .team-card { margin-top: 24px; border-top: 1px solid var(--border); }
+.team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.team-card { min-width: 0; }
+@container (max-width: 620px) {
+  .team-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .team-card + .team-card { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+}
 .team-heading { margin-bottom: 18px; }
 .team-heading h3 { font-family: "Antonio", sans-serif; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 9px; }
 .side-label { font-family: "Antonio", sans-serif; font-size: 1rem; color: var(--light-gray); }
 .team-dot { width: 5px; height: 17px; background: var(--accent-red); }
 .team-card[data-team="2"] .team-dot { background: var(--accent-gold); }
+/* Deadlock: grey until the sides are known, then Hidden King (left) and Archmother (right). */
+[data-game="Deadlock"] .team-card .team-dot { background: var(--dark-gray); }
+[data-game="Deadlock"][data-sides-known] .team-card[data-team="1"] .team-dot { background: #D4860B; }
+[data-game="Deadlock"][data-sides-known] .team-card[data-team="2"] .team-dot { background: #4D75C3; }
 .team-fields { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 10px; }
 .roster-heading { margin: 20px 0 10px; }
 .players { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; }
@@ -124,15 +133,12 @@ footer > span:first-child { font-family: "Antonio", sans-serif; letter-spacing: 
   .connection { font-size: .72rem; }
   main { padding: 0 16px 20px; }
   .workspace-grid { grid-template-columns: minmax(0, 1fr); }
+  .match-section { position: static; }
   .components { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-  .team-card + .team-card { margin: 0; border-top: 0; }
   footer { flex-direction: column; gap: 6px; }
 }
 @media (max-width: 540px) {
-  .components, .team-grid { grid-template-columns: minmax(0, 1fr); }
-  .team-grid { gap: 0; }
-  .team-card + .team-card { margin-top: 24px; border-top: 1px solid var(--border); }
+  .components { grid-template-columns: minmax(0, 1fr); }
   .panel { padding: 16px; }
   .scene-title { gap: 10px; }
   h2 { font-size: 1.45rem; }
@@ -151,3 +157,21 @@ footer > span:first-child { font-family: "Antonio", sans-serif; letter-spacing: 
 .ban-form button { padding-left: 10px; padding-right: 10px; }
 .ban-feedback { margin-top: 8px; }
 .ban-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
+.sides-section { margin-top: 24px; padding-top: 4px; border-top: 1px solid var(--border); }
+.sides-state { font-size: .75rem; color: var(--light-gray); }
+.sides-state.known { color: var(--accent-gold); }
+.sides-controls { margin-top: 8px; }
+.sides-controls button { flex: 1; font-size: .8rem; padding-left: 10px; padding-right: 10px; }
+.sides-feedback { margin-top: 8px; }
+.sides-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
+.sides-section .component { width: 100%; }
+.draft-form { margin-bottom: 24px; }
+.draft-form .team-fields { grid-template-columns: minmax(0, 1fr) 96px; }
+.draft-feedback { margin-top: 8px; }
+.draft-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
+.ban-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.hero-select { font-size: .8rem; }
+.players.with-picks { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto; column-gap: 10px; }
+.players.with-picks .player { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
+.open-slot { color: var(--dark-gray); }
+.players.with-picks .remove-player { grid-column: 4; }

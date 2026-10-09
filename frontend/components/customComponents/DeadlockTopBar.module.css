@@ -1,0 +1,343 @@
+/* All lengths are in 1920-wide canvas units (var(--u)). Deadlock's Panorama HUD scales
+   with screen height against a 1080 reference and is centred, so on a 16:9 output these
+   units track it exactly at any resolution. The GryphDeck spectator HUD mod pushes the
+   game's top bar down 64 (spectator mode only); this band owns the top 60.
+
+   Team blocks mirror citadel_hud_top_bar: #TeamsContainer is 1260 wide and centred
+   (x 330-1590), each CitadelHudTopBarTeam is 528 wide (team 1 left, team 2 right), and each
+   player column is playerDetailsWidth 88. Player names therefore sit at 330 + 88i (left)
+   and 1062 + 88i (right), directly above the hero portraits.
+
+   The outer slanted edges continue the outermost health bars' outer edges (left bars are
+   rotated -10deg, right bars +7deg on an already tapered bar), measured from the HUD:
+   left x 318 -> 330 and right x 1611 -> 1594 over the band's 60.
+
+   Until GryphDeck knows which side each team is on (.unknown), both teams are neutral grey;
+   the side colours are registered properties so they fade in once the sides are known. */
+@property --left { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
+@property --left-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
+@property --left-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
+@property --right { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
+@property --right-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
+@property --right-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
+
+.frame {
+    position: relative;
+    width: min(100vw, calc(100vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    container-type: inline-size;
+    font-family: "DM Sans", sans-serif;
+    color: #fff;
+    --u: calc(100cqw / 1920);
+    --left-outer: 318;
+    --left-slant: 12;
+    --right-outer: 1611;
+    --right-slant: 17;
+    /* Deadlock team colours (citadel_base_styles): team 1 Hidden King, team 2 Archmother. */
+    --hidden-king: #D4860B;
+    --hidden-king-bright: #FBDCA0;
+    --hidden-king-darker: #6F3806;
+    --archmother: #4D75C3;
+    --archmother-bright: #BDCBFF;
+    --archmother-darker: #243265;
+    --neutral: #6b6b6b;
+    --neutral-bright: #e0e0e0;
+    --neutral-darker: #2a2a2a;
+    --left: var(--hidden-king);
+    --left-bright: var(--hidden-king-bright);
+    --left-darker: var(--hidden-king-darker);
+    --right: var(--archmother);
+    --right-bright: var(--archmother-bright);
+    --right-darker: var(--archmother-darker);
+    transition-property: --left, --left-bright, --left-darker, --right, --right-bright, --right-darker;
+    transition-duration: 0.9s;
+    transition-timing-function: ease;
+    /* Gryphon brand */
+    --gold: #ffc429;
+    --red: #e51937;
+    --chalk: #1b1b1b;
+}
+
+.unknown {
+    --left: var(--neutral);
+    --left-bright: var(--neutral-bright);
+    --left-darker: var(--neutral-darker);
+    --right: var(--neutral);
+    --right-bright: var(--neutral-bright);
+    --right-darker: var(--neutral-darker);
+}
+
+.band {
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(60 * var(--u));
+    background: var(--chalk) url("/static/bg-blank.png") center / cover;
+    box-shadow: 0 calc(3 * var(--u)) calc(12 * var(--u)) rgb(0 0 0 / 50%);
+}
+
+/* Team-to-team rule along the bottom edge, with Gryphon gold under the score. */
+.band::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: calc(3 * var(--u));
+    background: linear-gradient(to right,
+        var(--left) 0 calc(858 * var(--u)),
+        var(--gold) calc(858 * var(--u)) calc(1062 * var(--u)),
+        var(--right) calc(1062 * var(--u)) 100%);
+}
+
+/* Outer ends: Gryphon Gaming brand (left) and match label (right) */
+
+.brand,
+.matchInfo {
+    position: absolute;
+    top: 0;
+    width: calc(302 * var(--u));
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.brand {
+    left: 0;
+    gap: calc(8 * var(--u));
+    padding-left: calc(14 * var(--u));
+}
+
+.brand img {
+    width: calc(50 * var(--u));
+    height: calc(50 * var(--u));
+    object-fit: contain;
+}
+
+.brand div {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+}
+
+.brandName {
+    font-family: "Antonio", sans-serif;
+    font-size: calc(21 * var(--u));
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.brandGame {
+    color: var(--gold);
+    font-family: "Antonio", sans-serif;
+    font-size: calc(13 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+}
+
+.matchInfo {
+    right: 0;
+    justify-content: flex-end;
+    padding: 0 calc(16 * var(--u));
+    font-family: "Antonio", sans-serif;
+    font-size: calc(16 * var(--u));
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.15;
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.live {
+    display: flex;
+    align-items: center;
+    gap: calc(6 * var(--u));
+}
+
+.live::before {
+    content: "";
+    width: calc(8 * var(--u));
+    height: calc(8 * var(--u));
+    border-radius: 50%;
+    background: var(--red);
+}
+
+/* Teams: the game's 528-wide team area plus a slanted outer edge leaning toward centre. */
+
+.team {
+    --team: var(--left);
+    --team-bright: var(--left-bright);
+    --team-darker: var(--left-darker);
+    position: absolute;
+    top: 0;
+    left: calc(var(--left-outer) * var(--u));
+    width: calc((858 - var(--left-outer)) * var(--u));
+    height: 100%;
+    --names-strip: linear-gradient(transparent calc(36 * var(--u)), rgb(0 0 0 / 40%) calc(36 * var(--u)));
+    background: var(--names-strip), linear-gradient(to right, var(--team-darker), var(--team));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, calc(var(--left-slant) * var(--u)) 100%);
+}
+
+.right {
+    --team: var(--right);
+    --team-bright: var(--right-bright);
+    --team-darker: var(--right-darker);
+    left: calc(1062 * var(--u));
+    width: calc((var(--right-outer) - 1062) * var(--u));
+    background: var(--names-strip), linear-gradient(to left, var(--team-darker), var(--team));
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--right-slant) * var(--u)) 100%, 0 100%);
+}
+
+/* The team's own in-game icon (Hidden King crown / Archmother hand, exported from the game's
+   SVGs) blown up and rotated so it sweeps across the whole coloured block like a texture:
+   only part of the symbol shows, a shade lighter than the team colour, behind the text. */
+.team::before {
+    content: "";
+    position: absolute;
+    /* Icon scaled to the block's width; the band crosses the crown's points. */
+    left: calc(10 * var(--u));
+    top: calc(-250 * var(--u));
+    width: calc(540 * var(--u));
+    height: calc(706 * var(--u));
+    background: rgb(255 255 255 / 12%);
+    mask: url("/static/Deadlock/Teams/hidden_king.svg") center / contain no-repeat;
+    transform: rotate(-8deg);
+    pointer-events: none;
+    transition: opacity 0.9s ease;
+}
+
+/* The crown and hand would give the sides away before they are known. */
+.unknown .team::before { opacity: 0; }
+
+.right::before {
+    /* The band crosses the hand's fingers. */
+    top: calc(-120 * var(--u));
+    mask-image: url("/static/Deadlock/Teams/archmother.svg");
+    transform: rotate(8deg);
+}
+
+.teamRow,
+.players { position: relative; }
+
+.teamRow {
+    display: flex;
+    align-items: center;
+    gap: calc(10 * var(--u));
+    height: calc(36 * var(--u));
+    padding: 0 calc(16 * var(--u)) 0 calc((var(--left-slant) + 10) * var(--u));
+}
+
+.right .teamRow {
+    flex-direction: row-reverse;
+    padding: 0 calc((var(--right-slant) + 10) * var(--u)) 0 calc(16 * var(--u));
+}
+
+.logo {
+    width: calc(28 * var(--u));
+    height: calc(28 * var(--u));
+    flex: none;
+    object-fit: contain;
+}
+
+.teamName {
+    flex: 1;
+    min-width: 0;
+    font-family: "Antonio", sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0 calc(1 * var(--u)) calc(4 * var(--u)) rgb(0 0 0 / 45%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.right .teamName { text-align: right; }
+
+/* Player names, one per in-game portrait column. */
+.players {
+    position: relative;
+    height: calc(21 * var(--u));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.players li {
+    position: absolute;
+    top: 0;
+    left: calc((330 - var(--left-outer) + var(--slot) * 88) * var(--u));
+    width: calc(88 * var(--u));
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 calc(4 * var(--u));
+    font-weight: 700;
+    line-height: 1;
+}
+
+.right .players li { left: calc(var(--slot) * 88 * var(--u)); }
+
+.players span {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.players li + li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 25%;
+    height: 50%;
+    width: calc(1 * var(--u));
+    background: rgb(255 255 255 / 30%);
+}
+
+/* Centre: series score in equal team chips around a gold slash, between the game's teams. */
+
+.score {
+    position: absolute;
+    top: 0;
+    left: calc(858 * var(--u));
+    width: calc(204 * var(--u));
+    height: calc(57 * var(--u));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(14 * var(--u));
+}
+
+.scoreChip {
+    display: grid;
+    place-items: center;
+    width: calc(54 * var(--u));
+    height: calc(42 * var(--u));
+    border-radius: calc(3 * var(--u));
+    font-family: "Antonio", sans-serif;
+    font-size: calc(34 * var(--u));
+    font-variant-numeric: lining-nums tabular-nums;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.leftScore {
+    background: var(--left-darker);
+    box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--left);
+    color: var(--left-bright);
+}
+
+.rightScore {
+    background: var(--right-darker);
+    box-shadow: inset 0 calc(-3 * var(--u)) 0 var(--right);
+    color: var(--right-bright);
+}
+
+.divider {
+    width: calc(3 * var(--u));
+    height: calc(28 * var(--u));
+    background: var(--gold);
+    transform: skewX(-14deg);
+}

@@ -23,11 +23,26 @@ test("accepts scene documents and rejects data that cannot be rendered", () => {
     c => { c.data.teams[0].players = [{}]; },
     c => { c.data.map_picks = [null]; },
     c => { c.data.hero_bans = "Ana"; },
+    c => { c.data.teams[0].picks = [1]; },
+    c => { c.data.teams[1].bans = "Haze"; },
+    c => { c.data.first_pick = 3; },
+    c => { c.data.sides_known = "yes"; },
   ]) {
     const value = document();
     change(value.scenes.ingame[0]);
     assert.equal(validOverlay(value), false);
   }
+});
+
+test("accepts hero draft data with open slots", () => {
+  const team = (name, hero) => ({ name, score: 0, players: ["One"], picks: [hero, null], bans: [null] });
+  const value = { game: "Deadlock", scenes: { idle: [], ingame: [], pregame: [{
+    name: "Hero Draft", location: "Center", data: {
+      game: "Deadlock", scene: "pregame", label: "", first_pick: 0, sides_known: false,
+      teams: [team("Gryphons", "Haze"), team("Rivals", null)],
+    },
+  }] } };
+  assert.equal(validOverlay(value), true);
 });
 
 test("retains posted state while offline and reconciles a missed POST", async () => {

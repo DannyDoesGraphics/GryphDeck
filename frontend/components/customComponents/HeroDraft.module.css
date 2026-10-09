@@ -1,0 +1,380 @@
+/* Until GryphDeck knows which side each team is on (.unknown), both teams are neutral grey;
+   the side colours are registered properties so they fade in once the sides are known. */
+@property --left { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
+@property --left-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
+@property --left-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
+@property --right { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
+@property --right-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
+@property --right-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
+
+.frame {
+    position: relative;
+    width: min(100vw, calc(100vh * 16 / 9));
+    aspect-ratio: 16 / 9;
+    container-type: inline-size;
+    font-family: "DM Sans", sans-serif;
+    color: #fff;
+    overflow: hidden;
+    /* Team colours from Deadlock's own UI styles (citadel_base_styles):
+       team 1 is the Hidden King, team 2 is the Archmother. */
+    --hidden-king: #D4860B;
+    --hidden-king-bright: #FBDCA0;
+    --hidden-king-darker: #6F3806;
+    --archmother: #4D75C3;
+    --archmother-bright: #BDCBFF;
+    --archmother-darker: #243265;
+    --neutral: #6b6b6b;
+    --neutral-bright: #e0e0e0;
+    --neutral-darker: #2a2a2a;
+    --left: var(--hidden-king);
+    --left-bright: var(--hidden-king-bright);
+    --left-darker: var(--hidden-king-darker);
+    --right: var(--archmother);
+    --right-bright: var(--archmother-bright);
+    --right-darker: var(--archmother-darker);
+    transition-property: --left, --left-bright, --left-darker, --right, --right-bright, --right-darker;
+    transition-duration: 0.9s;
+    transition-timing-function: ease;
+    --ink: #111;
+    --gold: #ffc429;
+}
+
+.unknown {
+    --left: var(--neutral);
+    --left-bright: var(--neutral-bright);
+    --left-darker: var(--neutral-darker);
+    --right: var(--neutral);
+    --right-bright: var(--neutral-bright);
+    --right-darker: var(--neutral-darker);
+}
+
+.background {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Team-coloured light falling in from each side of the chalkboard. */
+.frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(60% 80% at 0% 100%, color-mix(in srgb, var(--left) 22%, transparent), transparent 70%),
+        radial-gradient(60% 80% at 100% 100%, color-mix(in srgb, var(--right) 22%, transparent), transparent 70%);
+    pointer-events: none;
+}
+
+.layout {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14cqw minmax(0, 1fr);
+    gap: 1.6cqw;
+    padding: 3.4cqw 2.6cqw 2.4cqw;
+}
+
+/* Team panels */
+
+.team {
+    --team: var(--left);
+    --team-bright: var(--left-bright);
+    --team-darker: var(--left-darker);
+    display: grid;
+    grid-template-rows: 4.6cqw minmax(0, 1fr);
+    gap: 1.1cqw;
+    min-width: 0;
+    min-height: 0;
+}
+
+.right {
+    --team: var(--right);
+    --team-bright: var(--right-bright);
+    --team-darker: var(--right-darker);
+}
+
+/* A solid team-colour bar holding the logo, name, first-pick tag, and bans. */
+.teamHeader {
+    display: flex;
+    align-items: center;
+    gap: 1cqw;
+    min-width: 0;
+    padding: 0 0.8cqw 0 0.6cqw;
+    border-radius: 0.3cqw;
+    background: linear-gradient(to right, var(--team), var(--team-darker));
+    box-shadow: 0 0.4cqw 1.2cqw rgb(0 0 0 / 45%);
+}
+
+.right .teamHeader {
+    padding: 0 0.6cqw 0 0.8cqw;
+    background: linear-gradient(to left, var(--team), var(--team-darker));
+}
+
+.right .teamHeader,
+.right .bans,
+.right .teamTitle { flex-direction: row-reverse; }
+
+.logo {
+    display: block;
+    width: 3.6cqw;
+    height: 3.6cqw;
+    flex: 0 0 3.6cqw;
+    object-fit: contain;
+}
+
+.teamTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.9cqw;
+    flex: 1;
+    min-width: 0;
+}
+
+.teamName {
+    min-width: 0;
+    font-family: "Antonio", sans-serif;
+    font-size: 2.9cqw;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0 0.1cqw 0.4cqw rgb(0 0 0 / 40%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.right .teamName { text-align: right; }
+
+.firstPick {
+    flex-shrink: 0;
+    padding: 0.25cqw 0.7cqw;
+    border: 0.12cqw solid #fff;
+    border-radius: 2cqw;
+    color: #fff;
+    font-family: "Antonio", sans-serif;
+    font-size: 0.95cqw;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Bans sit in the bar as full-colour portraits that rise above its top edge. */
+.bans {
+    display: flex;
+    align-items: flex-end;
+    align-self: stretch;
+    gap: 0.4cqw;
+    flex-shrink: 0;
+}
+
+.bansLabel {
+    align-self: center;
+    margin: 0 0.5cqw;
+    color: rgb(255 255 255 / 85%);
+    font-family: "Antonio", sans-serif;
+    font-size: 1.1cqw;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.ban {
+    position: relative;
+    width: 4.2cqw;
+    height: 5.8cqw;
+    overflow: hidden;
+    border: 0.14cqw solid var(--team-bright);
+    border-bottom: 0;
+    border-radius: 0.3cqw 0.3cqw 0 0;
+    background: var(--ink);
+}
+
+.ban img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+}
+
+.emptyBan {
+    display: grid;
+    place-items: center;
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--team-bright) 60%, transparent);
+    background: rgb(0 0 0 / 30%);
+    color: color-mix(in srgb, #fff 60%, transparent);
+    font-family: "Antonio", sans-serif;
+    font-size: 1.3cqw;
+}
+
+/* Hero picks: three columns by two rows of tall cards. */
+
+.picks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 0.8cqw;
+    min-height: 0;
+}
+
+.pick {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-top: 0.3cqw solid var(--team);
+    border-radius: 0.3cqw;
+    background: var(--ink);
+    box-shadow: 0 0.4cqw 1.2cqw rgb(0 0 0 / 45%);
+}
+
+.portrait {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;
+}
+
+.emptyPick {
+    border: 0.12cqw dashed color-mix(in srgb, var(--team) 60%, transparent);
+    border-top: 0.3cqw solid color-mix(in srgb, var(--team) 60%, transparent);
+    background: rgb(0 0 0 / 40%);
+    box-shadow: none;
+}
+
+.pending {
+    position: absolute;
+    inset: 0 0 4cqw;
+    display: grid;
+    place-items: center;
+    color: color-mix(in srgb, var(--team) 40%, transparent);
+    font-family: "Antonio", sans-serif;
+    font-size: 6cqw;
+    font-weight: 700;
+}
+
+.plate {
+    position: absolute;
+    inset: auto 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15cqw;
+    padding: 2.6cqw 0.7cqw 0.6cqw;
+    background: linear-gradient(to top, rgb(0 0 0 / 92%) 45%, transparent);
+    text-align: center;
+}
+
+.heroName {
+    color: var(--team-bright);
+    font-family: "Antonio", sans-serif;
+    font-size: 1cqw;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.emptyPick .heroName { color: color-mix(in srgb, #fff 45%, transparent); }
+
+.playerName {
+    font-size: 1.45cqw;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Centre column */
+
+.center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2cqw;
+    min-width: 0;
+    text-align: center;
+}
+
+.label {
+    max-width: 100%;
+    color: #d8d8d8;
+    font-family: "Antonio", sans-serif;
+    font-size: 1.15cqw;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: "Antonio", sans-serif;
+    font-size: 4.6cqw;
+    font-weight: 700;
+    line-height: 0.92;
+    text-transform: uppercase;
+}
+
+.amp {
+    color: var(--gold);
+    font-size: 0.6em;
+    line-height: 1.2;
+}
+
+.score {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    width: 100%;
+    padding: 0.8cqw 0;
+    border-block: 0.12cqw solid rgb(255 255 255 / 30%);
+    font-family: "Antonio", sans-serif;
+    font-size: 4.4cqw;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.leftScore { color: var(--left); }
+.rightScore { color: var(--right); }
+.unknown .leftScore, .unknown .rightScore { color: var(--neutral-bright); }
+
+.versus {
+    color: #d8d8d8;
+    font-size: 1.2cqw;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2cqw;
+}
+
+.brand img {
+    display: block;
+    width: 8.5cqw;
+    height: 8.5cqw;
+    object-fit: contain;
+}
+
+.brand span {
+    color: #d8d8d8;
+    font-family: "Antonio", sans-serif;
+    font-size: 1.1cqw;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}

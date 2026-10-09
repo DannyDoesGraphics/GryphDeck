@@ -1,0 +1,11 @@
+{
+  "comment": "Community mods bundled into the GryphDeck spectator mod. build_mod.py downloads the newest GameBanana file whose name contains `file` (or exactly `pin`, a file id) on every build and caches it under tools/deadlock/.cache/.",
+  "mods": [
+    {
+      "name": "Top Bar Plus",
+      "gamebanana": 623518,
+      "file": "top_bar_plus",
+      "pin": null
+    }
+  ]
+}

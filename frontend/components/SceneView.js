@@ -12,6 +12,8 @@ import { SponsorshipBadge } from "./customComponents/SponsorshipBadge.js";
 import { TeamRoster } from "./customComponents/TeamRoster.js";
 import { CharacterBansPregame } from "./customComponents/CharacterBansPregame.js";
 import { CharacterBansIngame } from "./customComponents/CharacterBansIngame.js";
+import { HeroDraft } from "./customComponents/HeroDraft.js";
+import { DeadlockTopBar } from "./customComponents/DeadlockTopBar.js";
 
 function ComponentContent({ component }) {
   const { name, data } = component;
@@ -37,6 +39,12 @@ function ComponentContent({ component }) {
   }
   if (key === "character bans pregame") {
     return <CharacterBansPregame scene={data} />;
+  }
+  if (key === "hero draft") {
+    return <HeroDraft scene={data} />;
+  }
+  if (key === "deadlock top bar") {
+    return <DeadlockTopBar scene={data} />;
   }
   if (key === "intermission") {
     return <Intermission scene={data} />;

@@ -10,6 +10,8 @@ class GameInfo:
 
         self.maps = []
         self.chars = []
+        self.draft = None
+        self.sides = ["Left", "Right"]
 
         self.load_game_info(self.name)
 
@@ -22,6 +24,11 @@ class GameInfo:
             self.enabled_components = data["enabled_components"]
             self.maps = data["maps"]
             self.chars = data["chars"]
+            # Optional: per-team draft slot counts for pick/ban games.
+            draft = data.get("draft")
+            self.draft = {"picks": int(draft["picks"]), "bans": int(draft["bans"])} if draft else None
+            # Optional: the in-game names of the left and right sides.
+            self.sides = [str(side) for side in data.get("sides", ["Left", "Right"])][:2]
 
     def __str__(self):
         return json.dumps({
@@ -30,6 +37,8 @@ class GameInfo:
             "enabled_components": self.enabled_components,
             "maps": self.maps,
             "chars": self.chars,
+            "draft": self.draft,
+            "sides": self.sides,
         }, indent=2)
 
     def ban_options(self):

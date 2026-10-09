@@ -28,7 +28,7 @@
                 <label class="sr-only" for="game">Game configuration</label>
                 <div class="input-row"><select id="game" name="game" required></select><button class="primary" type="submit">Load game</button></div>
               </form>
-              <p class="hint">Loading resets components, map picks, and hero bans. Team names, scores, and rosters are retained.</p>
+              <p class="hint">Loading resets components, map picks, hero bans, and the hero draft. Team names, scores, and rosters are retained.</p>
             </section>
             {% for scene, label in [('idle', 'Idle'), ('pregame', 'Pregame'), ('ingame', 'Ingame')] %}
             <section class="panel scene-panel" data-scene-panel="{{ scene }}" aria-labelledby="{{ scene }}-heading">
@@ -39,28 +39,44 @@
               <div id="components-{{ scene }}" class="components" role="group" aria-labelledby="{{ scene }}-heading"></div>
             </section>
             {% endfor %}
+            <section class="panel teams-panel" aria-labelledby="teams-heading">
+              <div class="section-heading">
+                <div class="scene-title"><span class="section-number" aria-hidden="true">04</span><h2 id="teams-heading">Teams</h2></div>
+              </div>
+              <form class="draft-form" hidden>
+                <div class="team-fields">
+                  <div><label for="draft-label">Match label</label><input id="draft-label" name="label" placeholder="e.g. Grand Final · Game 2 · Bo3" maxlength="80" autocomplete="off"></div>
+                  <div><label for="draft-first-pick">First pick</label><select id="draft-first-pick" name="first_pick"><option value="0">None</option><option value="1" data-side-name="1">Left</option><option value="2" data-side-name="2">Right</option></select></div>
+                </div>
+                <p class="draft-feedback hint" role="status" aria-live="polite">Each hero can fill one slot across both teams.</p>
+              </form>
+              <div class="team-grid">
+                {% for team in (1, 2) %}
+                <article class="team-card" data-team="{{ team }}" aria-labelledby="team-heading-{{ team }}">
+                  <div class="team-heading"><h3 id="team-heading-{{ team }}"><span class="team-dot" aria-hidden="true"></span><span data-side-name="{{ team }}">{{ 'Left' if team == 1 else 'Right' }} team</span></h3><span class="side-label">0{{ team }}</span></div>
+                  <form class="team-form">
+                    <div class="team-fields"><div><label for="team-name-{{ team }}">Team name</label><input id="team-name-{{ team }}" name="name" placeholder="Team {{ team }}" maxlength="80" required></div><div><label for="team-score-{{ team }}">Score</label><input id="team-score-{{ team }}" name="score" type="number" min="0" max="999" step="1" value="0" required></div></div>
+                    <div class="save-feedback"><span class="save-status" role="status" aria-live="polite">Changes save automatically.</span><button class="retry-save secondary" type="button" hidden>Retry save</button></div>
+                  </form>
+                  <div class="team-bans" data-bans="{{ team }}" hidden>
+                    <div class="roster-heading"><h3>Bans</h3></div>
+                    <div class="ban-slots" role="group" aria-label="{{ 'Left' if team == 1 else 'Right' }} team bans"></div>
+                  </div>
+                  <div class="roster-heading"><h3 class="roster-title">Player roster</h3><span class="player-count">0 players</span></div>
+                  <ul class="players" aria-label="Team {{ team }} players"></ul>
+                  <form class="player-form"><label class="sr-only" for="player-{{ team }}">New player for team {{ team }}</label><div class="input-row"><input id="player-{{ team }}" name="player" placeholder="Player name" maxlength="80" required><button class="secondary" type="submit">+ Add player</button></div></form>
+                </article>
+                {% endfor %}
+              </div>
+            </section>
             <p class="control-note">Components in the same position replace each other. Each scene retains its own toggles.</p>
           </div>
           <aside class="panel match-section" aria-labelledby="match-heading">
             <div class="section-heading"><h2 id="match-heading">Match info</h2><button id="swap-sides" type="button" class="secondary">Swap sides</button></div>
             <div class="match-summary" aria-label="Current saved score">
-              <div><span class="side-caption">LEFT</span><span id="summary-left">Team 1</span></div>
+              <div><span class="side-caption" data-side-name="1">LEFT</span><span id="summary-left">Team 1</span></div>
               <strong><span id="score-left">0</span><span class="score-divider">:</span><span id="score-right">0</span></strong>
-              <div><span class="side-caption">RIGHT</span><span id="summary-right">Team 2</span></div>
-            </div>
-            <div class="team-grid">
-              {% for team in (1, 2) %}
-              <article class="team-card" data-team="{{ team }}" aria-labelledby="team-heading-{{ team }}">
-                <div class="team-heading"><h3 id="team-heading-{{ team }}"><span class="team-dot" aria-hidden="true"></span>{{ 'Left' if team == 1 else 'Right' }} team</h3><span class="side-label">0{{ team }}</span></div>
-                <form class="team-form">
-                  <div class="team-fields"><div><label for="team-name-{{ team }}">Team name</label><input id="team-name-{{ team }}" name="name" placeholder="Team {{ team }}" maxlength="80" required></div><div><label for="team-score-{{ team }}">Score</label><input id="team-score-{{ team }}" name="score" type="number" min="0" max="999" step="1" value="0" required></div></div>
-                  <div class="save-feedback"><span class="save-status" role="status" aria-live="polite">Changes save automatically.</span><button class="retry-save secondary" type="button" hidden>Retry save</button></div>
-                </form>
-                <div class="roster-heading"><h3>Player roster</h3><span class="player-count">0 players</span></div>
-                <ul class="players" aria-label="Team {{ team }} players"></ul>
-                <form class="player-form"><label class="sr-only" for="player-{{ team }}">New player for team {{ team }}</label><div class="input-row"><input id="player-{{ team }}" name="player" placeholder="Player name" maxlength="80" required><button class="secondary" type="submit">+ Add player</button></div></form>
-              </article>
-              {% endfor %}
+              <div><span class="side-caption" data-side-name="2">RIGHT</span><span id="summary-right">Team 2</span></div>
             </div>
             {% for kind, label in [('map', 'Map'), ('hero', 'Hero')] %}
             {% set selection = 'pick' if kind == 'map' else 'ban' %}
@@ -75,6 +91,16 @@
               <p class="ban-feedback hint" id="{{ kind }}-ban-feedback" role="status" aria-live="polite">Type to search the game's {{ 'maps' if kind == 'map' else 'heroes' }}.</p>
             </section>
             {% endfor %}
+            <section class="sides-section" aria-labelledby="sides-heading" hidden>
+              <div class="roster-heading"><h3 id="sides-heading">Team sides</h3><span class="sides-state">Grey</span></div>
+              <button id="sides-auto" class="component" type="button" aria-pressed="true"><span class="component-name">Detect from Deadlock</span><span class="toggle" aria-hidden="true"></span></button>
+              <div class="input-row sides-controls">
+                <button class="secondary" type="button" data-left="1">Left is Hidden King</button>
+                <button class="secondary" type="button" data-left="2">Left is Archmother</button>
+                <button id="sides-grey" class="secondary" type="button">Reset</button>
+              </div>
+              <p class="sides-feedback hint" role="status" aria-live="polite">Sides not known yet.</p>
+            </section>
           </aside>
         </div>
       </fieldset>
