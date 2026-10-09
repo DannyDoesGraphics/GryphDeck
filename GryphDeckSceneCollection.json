@@ -31,37 +31,6 @@
         "monitoring_type": 0,
         "private_settings": {}
     },
-    "AuxAudioDevice1": {
-        "prev_ver": 536936450,
-        "name": "Mic/Aux",
-        "uuid": "acda303c-3274-4893-9f28-a5bf038ca031",
-        "id": "wasapi_input_capture",
-        "versioned_id": "wasapi_input_capture",
-        "settings": {
-            "device_id": "{0.0.1.00000000}.{7b118fab-7a4d-415a-b5e9-0e1516923bad}"
-        },
-        "mixers": 255,
-        "sync": 0,
-        "flags": 0,
-        "volume": 1.0,
-        "balance": 0.5,
-        "enabled": true,
-        "muted": false,
-        "push-to-mute": false,
-        "push-to-mute-delay": 0,
-        "push-to-talk": false,
-        "push-to-talk-delay": 0,
-        "hotkeys": {
-            "libobs.mute": [],
-            "libobs.unmute": [],
-            "libobs.push-to-mute": [],
-            "libobs.push-to-talk": []
-        },
-        "deinterlace_mode": 0,
-        "deinterlace_field_order": 0,
-        "monitoring_type": 0,
-        "private_settings": {}
-    },
     "groups": [
         {
             "prev_ver": 536936450,
@@ -75,61 +44,6 @@
                 "cx": 0,
                 "cy": 0,
                 "items": [
-                    {
-                        "name": "Mic/Aux",
-                        "source_uuid": "acda303c-3274-4893-9f28-a5bf038ca031",
-                        "visible": true,
-                        "locked": false,
-                        "rot": 0.0,
-                        "scale_ref": {
-                            "x": 1920.0,
-                            "y": 1080.0
-                        },
-                        "align": 5,
-                        "bounds_type": 0,
-                        "bounds_align": 0,
-                        "bounds_crop": false,
-                        "crop_left": 0,
-                        "crop_top": 0,
-                        "crop_right": 0,
-                        "crop_bottom": 0,
-                        "id": 3,
-                        "group_item_backup": false,
-                        "pos": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "pos_rel": {
-                            "x": -1.7777777910232544,
-                            "y": -1.0
-                        },
-                        "scale": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "scale_rel": {
-                            "x": 1.0,
-                            "y": 1.0
-                        },
-                        "bounds": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "bounds_rel": {
-                            "x": 0.0,
-                            "y": 0.0
-                        },
-                        "scale_filter": "disable",
-                        "blend_method": "default",
-                        "blend_type": "normal",
-                        "show_transition": {
-                            "duration": 300
-                        },
-                        "hide_transition": {
-                            "duration": 300
-                        },
-                        "private_settings": {}
-                    },
                     {
                         "name": "Discord",
                         "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
@@ -184,6 +98,61 @@
                             "duration": 300
                         },
                         "private_settings": {}
+                    },
+                    {
+                        "name": "Mic",
+                        "source_uuid": "c666ab2b-39d4-4ad4-b421-93fac5e23ec2",
+                        "visible": true,
+                        "locked": false,
+                        "rot": 0.0,
+                        "scale_ref": {
+                            "x": 1920.0,
+                            "y": 1080.0
+                        },
+                        "align": 5,
+                        "bounds_type": 0,
+                        "bounds_align": 0,
+                        "bounds_crop": false,
+                        "crop_left": 0,
+                        "crop_top": 0,
+                        "crop_right": 0,
+                        "crop_bottom": 0,
+                        "id": 11,
+                        "group_item_backup": false,
+                        "pos": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "pos_rel": {
+                            "x": -1.7777777910232544,
+                            "y": -1.0
+                        },
+                        "scale": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "scale_rel": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "bounds": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "bounds_rel": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "scale_filter": "disable",
+                        "blend_method": "default",
+                        "blend_type": "normal",
+                        "show_transition": {
+                            "duration": 300
+                        },
+                        "hide_transition": {
+                            "duration": 300
+                        },
+                        "private_settings": {}
                     }
                 ]
             },
@@ -199,10 +168,10 @@
             "push-to-talk": false,
             "push-to-talk-delay": 0,
             "hotkeys": {
-                "libobs.show_scene_item.3": [],
-                "libobs.hide_scene_item.3": [],
                 "libobs.show_scene_item.4": [],
-                "libobs.hide_scene_item.4": []
+                "libobs.hide_scene_item.4": [],
+                "libobs.show_scene_item.11": [],
+                "libobs.hide_scene_item.11": []
             },
             "deinterlace_mode": 0,
             "deinterlace_field_order": 0,
@@ -269,7 +238,7 @@
     "saved_projectors": [],
     "preview_locked": false,
     "scaling_enabled": false,
-    "scaling_level": -9,
+    "scaling_level": -3,
     "scaling_off_x": 0.0,
     "scaling_off_y": 0.0,
     "virtual-camera": {
@@ -345,6 +314,37 @@
         },
         {
             "prev_ver": 536936450,
+            "name": "Application Audio Capture (BETA)",
+            "uuid": "7e049760-5350-4459-b41d-5c12a607af42",
+            "id": "wasapi_process_output_capture",
+            "versioned_id": "wasapi_process_output_capture",
+            "settings": {
+                "window": "VALORANT  :VALORANTUnrealWindow:VALORANT-Win64-Shipping.exe"
+            },
+            "mixers": 255,
+            "sync": 0,
+            "flags": 0,
+            "volume": 0.4741431176662445,
+            "balance": 0.5,
+            "enabled": true,
+            "muted": false,
+            "push-to-mute": false,
+            "push-to-mute-delay": 0,
+            "push-to-talk": false,
+            "push-to-talk-delay": 0,
+            "hotkeys": {
+                "libobs.mute": [],
+                "libobs.unmute": [],
+                "libobs.push-to-mute": [],
+                "libobs.push-to-talk": []
+            },
+            "deinterlace_mode": 0,
+            "deinterlace_field_order": 0,
+            "monitoring_type": 0,
+            "private_settings": {}
+        },
+        {
+            "prev_ver": 536936450,
             "name": "Chat",
             "uuid": "ff7a8f57-d125-4902-adb2-6995d0cec39c",
             "id": "browser_source",
@@ -391,7 +391,7 @@
             "mixers": 255,
             "sync": 0,
             "flags": 0,
-            "volume": 1.0,
+            "volume": 0.7019514441490173,
             "balance": 0.5,
             "enabled": true,
             "muted": false,
@@ -404,6 +404,37 @@
                 "libobs.unmute": [],
                 "libobs.push-to-mute": [],
                 "libobs.push-to-talk": []
+            },
+            "deinterlace_mode": 0,
+            "deinterlace_field_order": 0,
+            "monitoring_type": 0,
+            "private_settings": {}
+        },
+        {
+            "prev_ver": 536936450,
+            "name": "Game Capture",
+            "uuid": "fd8a820e-6716-47d5-80b2-b05bdbda26a3",
+            "id": "game_capture",
+            "versioned_id": "game_capture",
+            "settings": {},
+            "mixers": 255,
+            "sync": 0,
+            "flags": 0,
+            "volume": 1.0,
+            "balance": 0.5,
+            "enabled": true,
+            "muted": false,
+            "push-to-mute": false,
+            "push-to-mute-delay": 0,
+            "push-to-talk": false,
+            "push-to-talk-delay": 0,
+            "hotkeys": {
+                "libobs.mute": [],
+                "libobs.unmute": [],
+                "libobs.push-to-mute": [],
+                "libobs.push-to-talk": [],
+                "hotkey_start": [],
+                "hotkey_stop": []
             },
             "deinterlace_mode": 0,
             "deinterlace_field_order": 0,
@@ -586,8 +617,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Mic/Aux",
-                        "source_uuid": "acda303c-3274-4893-9f28-a5bf038ca031",
+                        "name": "Discord",
+                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -603,7 +634,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 3,
+                        "id": 4,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,
@@ -641,8 +672,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Discord",
-                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
+                        "name": "Mic",
+                        "source_uuid": "c666ab2b-39d4-4ad4-b421-93fac5e23ec2",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -658,7 +689,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 4,
+                        "id": 11,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,
@@ -749,7 +780,7 @@
                             "duration": 300
                         },
                         "private_settings": {
-                            "collapsed": true
+                            "collapsed": false
                         }
                     },
                     {
@@ -883,7 +914,8 @@
             "settings": {
                 "url": "http://localhost:3000/ingame",
                 "width": 1920,
-                "height": 1080
+                "height": 1080,
+                "restart_when_active": true
             },
             "mixers": 255,
             "sync": 0,
@@ -915,9 +947,64 @@
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 5,
+                "id_counter": 9,
                 "custom_size": false,
                 "items": [
+                    {
+                        "name": "Game Capture",
+                        "source_uuid": "fd8a820e-6716-47d5-80b2-b05bdbda26a3",
+                        "visible": true,
+                        "locked": false,
+                        "rot": 0.0,
+                        "scale_ref": {
+                            "x": 1920.0,
+                            "y": 1080.0
+                        },
+                        "align": 5,
+                        "bounds_type": 2,
+                        "bounds_align": 0,
+                        "bounds_crop": false,
+                        "crop_left": 0,
+                        "crop_top": 0,
+                        "crop_right": 0,
+                        "crop_bottom": 0,
+                        "id": 7,
+                        "group_item_backup": false,
+                        "pos": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "pos_rel": {
+                            "x": -1.7777777910232544,
+                            "y": -1.0
+                        },
+                        "scale": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "scale_rel": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "bounds": {
+                            "x": 1920.0,
+                            "y": 1080.0
+                        },
+                        "bounds_rel": {
+                            "x": 3.555555582046509,
+                            "y": 2.0
+                        },
+                        "scale_filter": "disable",
+                        "blend_method": "default",
+                        "blend_type": "normal",
+                        "show_transition": {
+                            "duration": 300
+                        },
+                        "hide_transition": {
+                            "duration": 300
+                        },
+                        "private_settings": {}
+                    },
                     {
                         "name": "In-Game Overlay",
                         "source_uuid": "51691d85-b47c-4362-b492-7581e82b85d7",
@@ -995,11 +1082,11 @@
                         "group_item_backup": false,
                         "pos": {
                             "x": 1609.0,
-                            "y": 0.0
+                            "y": 139.0
                         },
                         "pos_rel": {
                             "x": 1.2022569179534912,
-                            "y": -1.0
+                            "y": -0.7425925731658936
                         },
                         "scale": {
                             "x": 0.8287500143051147,
@@ -1084,8 +1171,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Mic/Aux",
-                        "source_uuid": "acda303c-3274-4893-9f28-a5bf038ca031",
+                        "name": "Discord",
+                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -1101,7 +1188,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 3,
+                        "id": 4,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,
@@ -1139,8 +1226,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Discord",
-                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
+                        "name": "Mic",
+                        "source_uuid": "c666ab2b-39d4-4ad4-b421-93fac5e23ec2",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -1156,7 +1243,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 4,
+                        "id": 11,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,
@@ -1272,11 +1359,11 @@
                         "group_item_backup": false,
                         "pos": {
                             "x": 1369.0,
-                            "y": 580.0
+                            "y": 719.0
                         },
                         "pos_rel": {
                             "x": 0.7574074268341064,
-                            "y": 0.07376539707183838
+                            "y": 0.3311728239059448
                         },
                         "scale": {
                             "x": 0.9183333516120911,
@@ -1285,6 +1372,61 @@
                         "scale_rel": {
                             "x": 0.9183333516120911,
                             "y": 0.9183333516120911
+                        },
+                        "bounds": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "bounds_rel": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "scale_filter": "disable",
+                        "blend_method": "default",
+                        "blend_type": "normal",
+                        "show_transition": {
+                            "duration": 300
+                        },
+                        "hide_transition": {
+                            "duration": 300
+                        },
+                        "private_settings": {}
+                    },
+                    {
+                        "name": "Application Audio Capture (BETA)",
+                        "source_uuid": "7e049760-5350-4459-b41d-5c12a607af42",
+                        "visible": true,
+                        "locked": false,
+                        "rot": 0.0,
+                        "scale_ref": {
+                            "x": 1920.0,
+                            "y": 1080.0
+                        },
+                        "align": 5,
+                        "bounds_type": 0,
+                        "bounds_align": 0,
+                        "bounds_crop": false,
+                        "crop_left": 0,
+                        "crop_top": 0,
+                        "crop_right": 0,
+                        "crop_bottom": 0,
+                        "id": 8,
+                        "group_item_backup": false,
+                        "pos": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "pos_rel": {
+                            "x": -1.7777777910232544,
+                            "y": -1.0
+                        },
+                        "scale": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "scale_rel": {
+                            "x": 1.0,
+                            "y": 1.0
                         },
                         "bounds": {
                             "x": 0.0,
@@ -1320,6 +1462,8 @@
             "push-to-talk-delay": 0,
             "hotkeys": {
                 "OBSBasic.SelectScene": [],
+                "libobs.show_scene_item.7": [],
+                "libobs.hide_scene_item.7": [],
                 "libobs.show_scene_item.1": [],
                 "libobs.hide_scene_item.1": [],
                 "libobs.show_scene_item.2": [],
@@ -1329,7 +1473,9 @@
                 "libobs.show_scene_item.3": [],
                 "libobs.hide_scene_item.3": [],
                 "libobs.show_scene_item.5": [],
-                "libobs.hide_scene_item.5": []
+                "libobs.hide_scene_item.5": [],
+                "libobs.show_scene_item.8": [],
+                "libobs.hide_scene_item.8": []
             },
             "deinterlace_mode": 0,
             "deinterlace_field_order": 0,
@@ -1339,12 +1485,43 @@
         },
         {
             "prev_ver": 536936450,
+            "name": "Mic",
+            "uuid": "c666ab2b-39d4-4ad4-b421-93fac5e23ec2",
+            "id": "wasapi_input_capture",
+            "versioned_id": "wasapi_input_capture",
+            "settings": {
+                "device_id": "{0.0.1.00000000}.{7b118fab-7a4d-415a-b5e9-0e1516923bad}"
+            },
+            "mixers": 255,
+            "sync": 0,
+            "flags": 0,
+            "volume": 1.0,
+            "balance": 0.5,
+            "enabled": true,
+            "muted": false,
+            "push-to-mute": false,
+            "push-to-mute-delay": 0,
+            "push-to-talk": false,
+            "push-to-talk-delay": 0,
+            "hotkeys": {
+                "libobs.mute": [],
+                "libobs.unmute": [],
+                "libobs.push-to-mute": [],
+                "libobs.push-to-talk": []
+            },
+            "deinterlace_mode": 0,
+            "deinterlace_field_order": 0,
+            "monitoring_type": 0,
+            "private_settings": {}
+        },
+        {
+            "prev_ver": 536936450,
             "name": "pregame",
             "uuid": "32367e32-67e2-4738-9e99-3bda7dd9c641",
             "id": "scene",
             "versioned_id": "scene",
             "settings": {
-                "id_counter": 10,
+                "id_counter": 11,
                 "custom_size": false,
                 "items": [
                     {
@@ -1513,8 +1690,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Mic/Aux",
-                        "source_uuid": "acda303c-3274-4893-9f28-a5bf038ca031",
+                        "name": "Discord",
+                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -1530,7 +1707,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 3,
+                        "id": 4,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,
@@ -1568,8 +1745,8 @@
                         "private_settings": {}
                     },
                     {
-                        "name": "Discord",
-                        "source_uuid": "6902d722-3786-4971-9643-c046cd60621c",
+                        "name": "Mic",
+                        "source_uuid": "c666ab2b-39d4-4ad4-b421-93fac5e23ec2",
                         "visible": true,
                         "locked": false,
                         "rot": 0.0,
@@ -1585,7 +1762,7 @@
                         "crop_top": 0,
                         "crop_right": 0,
                         "crop_bottom": 0,
-                        "id": 4,
+                        "id": 11,
                         "group_item_backup": true,
                         "pos": {
                             "x": 0.0,

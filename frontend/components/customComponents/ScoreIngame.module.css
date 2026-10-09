@@ -4,23 +4,49 @@
     aspect-ratio: 3840 / 238;
     container-type: inline-size;
     font-family: "DM Sans", sans-serif;
+}
+
+.panel {
+    position: absolute;
+    top: 0;
+    width: 27.25%;
+    height: 100%;
     overflow: hidden;
+    scale: var(--element-scale, 1);
+}
+
+.leftPanel {
+    left: 0;
+    transform-origin: left var(--element-origin-y, center);
+}
+
+.rightPanel {
+    right: 0;
+    transform-origin: right var(--element-origin-y, center);
 }
 
 .background {
+    position: absolute;
+    top: 0;
     display: block;
-    width: 100%;
+    /* Crop each outer 27.25% from the original artwork without resizing its panels. */
+    width: calc(100% / 0.2725);
+    max-width: none;
     height: 100%;
 }
+
+.leftPanel .background { left: 0; }
+.rightPanel .background { right: 0; }
 
 .content {
     position: absolute;
     inset: 0;
     display: grid;
-    /* Match the two large panels and two small score boxes in the artwork. */
-    grid-template-columns: 21% 6.25% 45.5% 6.25% 21%;
+    grid-template-columns: 21fr 6.25fr;
     grid-template-rows: minmax(0, 1fr);
 }
+
+.rightPanel .content { grid-template-columns: 6.25fr 21fr; }
 
 .team {
     grid-row: 1;
@@ -34,7 +60,7 @@
 }
 
 .leftTeam { grid-column: 1; color: #fff; }
-.rightTeam { grid-column: 5; color: #000; }
+.rightTeam { grid-column: 2; color: #000; }
 .leftName { text-align: left; }
 .rightName { text-align: right; }
 
@@ -82,4 +108,4 @@
     transform: translateY(-0.085em);
 }
 .leftScore { grid-column: 2; color: #000; }
-.rightScore { grid-column: 4; color: #fff; }
+.rightScore { grid-column: 1; color: #fff; }

@@ -132,11 +132,12 @@ class StateManager:
     def create_post_request(self):
         """Return a JSON document containing the enabled overlays for every scene.
 
-        Each component has a name, its configured location, and display data.
+        Each component has a name, its configured location and scale, and display data.
         Team arrays are ordered left then right. Static overlays receive game
         and scene context; dynamic overlays also receive their current values.
         This builds the request body; the caller handles its transport.
         """
+        scales = {element["Name"]: element.get("Scale", 1) for element in self.game_info.element_positions}
         scenes = {}
         for scene in ("idle", "pregame", "ingame"):
             scenes[scene] = []
@@ -161,7 +162,7 @@ class StateManager:
                     data["map_picks"] = self.bans["map"]
                 elif ("character" in component or "hero" in component) and "ban" in component:
                     data["hero_bans"] = self.bans["hero"]
-                scenes[scene].append({"name": name, "location": location, "data": data})
+                scenes[scene].append({"name": name, "location": location, "scale": scales.get(name, 1), "data": data})
         return json.dumps({"game": self.game_info.name, "scenes": scenes}, ensure_ascii=False, indent=2)
 
     def __str__(self):

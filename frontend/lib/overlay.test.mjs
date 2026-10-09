@@ -30,6 +30,23 @@ test("accepts scene documents and rejects data that cannot be rendered", () => {
   }
 });
 
+test("accepts optional nonnegative numeric scales and preserves them in the store", async () => {
+  assert.equal(validOverlay(document()), true);
+  for (const scale of [0, 0.5, 1, 1.5, 2]) {
+    const value = document();
+    value.scenes.ingame[0].scale = scale;
+    assert.equal(validOverlay(value), true);
+    const store = createOverlayStore();
+    store.publish(value);
+    assert.deepEqual(await store.read(() => assert.fail("Fresh state should be cached")), value);
+  }
+  for (const scale of [-1, "0.5", null, true, NaN, Infinity, {}, []]) {
+    const value = document();
+    value.scenes.ingame[0].scale = scale;
+    assert.equal(validOverlay(value), false);
+  }
+});
+
 test("retains posted state while offline and reconciles a missed POST", async () => {
   const store = createOverlayStore();
   store.publish(document(2));
