@@ -1,11 +1,12 @@
-/* Until GryphDeck knows which side each team is on (.unknown), both teams are neutral grey;
+/* Until GryphDeck knows which side each team is on (.unknown), the teams are silver (left) and graphite (right),
+   neutral tones that name no side;
    the side colours are registered properties so they fade in once the sides are known. */
-@property --left { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
-@property --left-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
-@property --left-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
-@property --right { syntax: "<color>"; inherits: true; initial-value: #6b6b6b; }
-@property --right-bright { syntax: "<color>"; inherits: true; initial-value: #e0e0e0; }
-@property --right-darker { syntax: "<color>"; inherits: true; initial-value: #2a2a2a; }
+@property --left { syntax: "<color>"; inherits: true; initial-value: #c3c8cf; }
+@property --left-bright { syntax: "<color>"; inherits: true; initial-value: #f4f6f8; }
+@property --left-darker { syntax: "<color>"; inherits: true; initial-value: #6a7079; }
+@property --right { syntax: "<color>"; inherits: true; initial-value: #565b63; }
+@property --right-bright { syntax: "<color>"; inherits: true; initial-value: #a9aeb5; }
+@property --right-darker { syntax: "<color>"; inherits: true; initial-value: #1d1f23; }
 
 .frame {
     position: relative;
@@ -23,9 +24,12 @@
     --archmother: #4D75C3;
     --archmother-bright: #BDCBFF;
     --archmother-darker: #243265;
-    --neutral: #6b6b6b;
-    --neutral-bright: #e0e0e0;
-    --neutral-darker: #2a2a2a;
+    --silver: #c3c8cf;
+    --silver-bright: #f4f6f8;
+    --silver-darker: #6a7079;
+    --graphite: #565b63;
+    --graphite-bright: #a9aeb5;
+    --graphite-darker: #1d1f23;
     --left: var(--hidden-king);
     --left-bright: var(--hidden-king-bright);
     --left-darker: var(--hidden-king-darker);
@@ -40,12 +44,12 @@
 }
 
 .unknown {
-    --left: var(--neutral);
-    --left-bright: var(--neutral-bright);
-    --left-darker: var(--neutral-darker);
-    --right: var(--neutral);
-    --right-bright: var(--neutral-bright);
-    --right-darker: var(--neutral-darker);
+    --left: var(--silver);
+    --left-bright: var(--silver-bright);
+    --left-darker: var(--silver-darker);
+    --right: var(--graphite);
+    --right-bright: var(--graphite-bright);
+    --right-darker: var(--graphite-darker);
 }
 
 .background {
@@ -82,7 +86,7 @@
     --team-bright: var(--left-bright);
     --team-darker: var(--left-darker);
     display: grid;
-    grid-template-rows: 4.6cqw minmax(0, 1fr);
+    grid-template-rows: 4.6cqw auto minmax(0, 1fr);
     gap: 1.1cqw;
     min-width: 0;
     min-height: 0;
@@ -94,7 +98,7 @@
     --team-darker: var(--right-darker);
 }
 
-/* A solid team-colour bar holding the logo, name, first-pick tag, and bans. */
+/* A solid team-colour bar holding the logo, name, and first-pick tag. */
 .teamHeader {
     display: flex;
     align-items: center;
@@ -107,13 +111,10 @@
 }
 
 .right .teamHeader {
+    flex-direction: row-reverse;
     padding: 0 0.6cqw 0 0.8cqw;
     background: linear-gradient(to left, var(--team), var(--team-darker));
 }
-
-.right .teamHeader,
-.right .bans,
-.right .teamTitle { flex-direction: row-reverse; }
 
 .logo {
     display: block;
@@ -123,15 +124,8 @@
     object-fit: contain;
 }
 
-.teamTitle {
-    display: flex;
-    align-items: center;
-    gap: 0.9cqw;
-    flex: 1;
-    min-width: 0;
-}
-
 .teamName {
+    flex: 1;
     min-width: 0;
     font-family: "Antonio", sans-serif;
     font-size: 2.9cqw;
@@ -151,7 +145,6 @@
     padding: 0.25cqw 0.7cqw;
     border: 0.12cqw solid #fff;
     border-radius: 2cqw;
-    color: #fff;
     font-family: "Antonio", sans-serif;
     font-size: 0.95cqw;
     font-weight: 600;
@@ -160,78 +153,181 @@
     white-space: nowrap;
 }
 
-/* Bans sit in the bar as full-colour portraits that rise above its top edge. */
-.bans {
-    display: flex;
-    align-items: flex-end;
-    align-self: stretch;
-    gap: 0.4cqw;
-    flex-shrink: 0;
+/* Card slots. An open slot is a dashed outline where its card will land; played cards
+   (positioned by HeroDraft.js) rest slightly tilted inside it. */
+
+.picks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
+    gap: 1.2cqw;
 }
 
+.bansRow {
+    align-self: end;
+    display: flex;
+    align-items: center;
+    gap: 1.2cqw;
+}
+
+.right .bansRow { flex-direction: row-reverse; }
+
 .bansLabel {
-    align-self: center;
-    margin: 0 0.5cqw;
     color: rgb(255 255 255 / 85%);
     font-family: "Antonio", sans-serif;
-    font-size: 1.1cqw;
+    font-size: 1.3cqw;
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
 }
 
-.ban {
-    position: relative;
-    width: 4.2cqw;
-    height: 5.8cqw;
-    overflow: hidden;
-    border: 0.14cqw solid var(--team-bright);
-    border-bottom: 0;
-    border-radius: 0.3cqw 0.3cqw 0 0;
-    background: var(--ink);
+.bans {
+    display: grid;
+    grid-template-columns: repeat(2, 6.8cqw);
+    gap: 1.2cqw;
 }
 
-.ban img {
-    display: block;
+.slot {
+    position: relative;
+    aspect-ratio: 280 / 380;
+    min-width: 0;
+}
+
+/* Where the next card lands: inset (by --cover, set by HeroDraft.js) so that any resting card
+   covers it whatever its tilt, and hidden once one has landed. */
+.blank {
+    position: absolute;
+    inset: calc((1 - var(--cover, 0.85)) * 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4cqw;
+    border: 0.12cqw dashed color-mix(in srgb, var(--team) 55%, transparent);
+    border-radius: 0.6cqw;
+    background: rgb(0 0 0 / 25%);
+}
+
+.covered .blank { visibility: hidden; }
+
+/* Lifts a card above its neighbours while it flies in. */
+.moving { z-index: 2; }
+
+.slotLabel {
+    color: color-mix(in srgb, var(--team) 45%, transparent);
+    font-family: "Antonio", sans-serif;
+    font-size: 5cqw;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.bans .slotLabel { font-size: 2cqw; }
+
+.slotPlayer {
+    max-width: 90%;
+    color: rgb(255 255 255 / 55%);
+    font-size: 1.2cqw;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shadow,
+.card {
+    position: absolute;
+    inset: -0.12cqw;
+    border-radius: 0.6cqw;
+}
+
+.shadow { box-shadow: 0 0.5cqw 1.4cqw rgb(0 0 0 / 60%); }
+
+.card {
+    /* A poker card: a cream face around the hero's picture, team-coloured indices in the corners. */
+    padding: 0.45cqw;
+    border: 0.08cqw solid rgb(0 0 0 / 35%);
+    background: linear-gradient(160deg, #fbf6ea, #e9dfc8);
+}
+
+.picture {
+    position: relative;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center 15%;
+    overflow: hidden;
+    border: 0.14cqw solid var(--team);
+    border-radius: 0.35cqw;
+    background: var(--ink);
 }
 
-.emptyBan {
+/* Light catching the card's face. */
+.card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 35%);
+    pointer-events: none;
+}
+
+.corner {
+    position: absolute;
+    top: 0.2cqw;
+    left: 0.2cqw;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15cqw;
+    padding: 0.3cqw 0.25cqw 0.35cqw;
+    border-radius: 0.35cqw 0 0.45cqw;
+    background: #fbf6ea;
+    color: var(--team);
+}
+
+.flipped {
+    top: auto;
+    left: auto;
+    right: 0.2cqw;
+    bottom: 0.2cqw;
+    transform: rotate(180deg);
+}
+
+.rank {
+    font-family: "Antonio", sans-serif;
+    font-size: 1.5cqw;
+    font-weight: 700;
+    line-height: 0.9;
+}
+
+/* The team's in-game icon as the suit, tinted to the team colour. */
+.suit {
+    width: 1.1cqw;
+    height: 1.2cqw;
+    background: var(--team);
+    mask: url("/static/Deadlock/Teams/hidden_king.svg") center / contain no-repeat;
+}
+
+.right .suit { mask-image: url("/static/Deadlock/Teams/archmother.svg"); }
+
+/* Until the sides are known the icons would give them away: plain spades and hearts instead. */
+.unknown .suit {
     display: grid;
     place-items: center;
-    border-style: dashed;
-    border-color: color-mix(in srgb, var(--team-bright) 60%, transparent);
-    background: rgb(0 0 0 / 30%);
-    color: color-mix(in srgb, #fff 60%, transparent);
-    font-family: "Antonio", sans-serif;
-    font-size: 1.3cqw;
+    background: none;
+    mask: none;
+    font-size: 1.25cqw;
+    line-height: 1;
 }
 
-/* Hero picks: three columns by two rows of tall cards. */
+.unknown .suit::before { content: "\2660\FE0E"; color: var(--ink); }
+.unknown .right .suit::before { content: "\2665\FE0E"; color: #c8102e; }
+.unknown .banned .suit { font-size: 0.8cqw; }
 
-.picks {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
-    gap: 0.8cqw;
-    min-height: 0;
-}
+.banned .corner { padding: 0.2cqw 0.15cqw 0.25cqw; }
+.banned .rank { font-size: 0.9cqw; }
+.banned .suit { width: 0.7cqw; height: 0.75cqw; }
 
-.pick {
-    position: relative;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    border-top: 0.3cqw solid var(--team);
-    border-radius: 0.3cqw;
-    background: var(--ink);
-    box-shadow: 0 0.4cqw 1.2cqw rgb(0 0 0 / 45%);
-}
-
-.portrait {
+.art {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -240,32 +336,14 @@
     object-position: center 15%;
 }
 
-.emptyPick {
-    border: 0.12cqw dashed color-mix(in srgb, var(--team) 60%, transparent);
-    border-top: 0.3cqw solid color-mix(in srgb, var(--team) 60%, transparent);
-    background: rgb(0 0 0 / 40%);
-    box-shadow: none;
-}
-
-.pending {
-    position: absolute;
-    inset: 0 0 4cqw;
-    display: grid;
-    place-items: center;
-    color: color-mix(in srgb, var(--team) 40%, transparent);
-    font-family: "Antonio", sans-serif;
-    font-size: 6cqw;
-    font-weight: 700;
-}
-
 .plate {
     position: absolute;
     inset: auto 0 0;
     display: flex;
     flex-direction: column;
     gap: 0.15cqw;
-    padding: 2.6cqw 0.7cqw 0.6cqw;
-    background: linear-gradient(to top, rgb(0 0 0 / 92%) 45%, transparent);
+    padding: 2.6cqw 1.9cqw 0.6cqw;
+    background: linear-gradient(to top, color-mix(in srgb, var(--team-darker) 50%, #000) 40%, transparent);
     text-align: center;
 }
 
@@ -279,8 +357,6 @@
     text-transform: uppercase;
 }
 
-.emptyPick .heroName { color: color-mix(in srgb, #fff 45%, transparent); }
-
 .playerName {
     font-size: 1.45cqw;
     font-weight: 700;
@@ -288,6 +364,35 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.banned .art { filter: grayscale(1) brightness(0.55); }
+
+.banned .plate { padding: 1.4cqw 1.2cqw 0.4cqw; }
+
+.banned .heroName {
+    color: rgb(255 255 255 / 70%);
+    font-size: 0.75cqw;
+}
+
+.stamp {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    margin-left: -2.6cqw;
+    width: 5.2cqw;
+    padding: 0.2cqw 0;
+    border: 0.18cqw solid #e5483a;
+    border-radius: 0.2cqw;
+    background: rgb(0 0 0 / 35%);
+    color: #ff5a4a;
+    font-family: "Antonio", sans-serif;
+    font-size: 1.15cqw;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+    transform: rotate(-14deg);
 }
 
 /* Centre column */
@@ -346,7 +451,8 @@
 
 .leftScore { color: var(--left); }
 .rightScore { color: var(--right); }
-.unknown .leftScore, .unknown .rightScore { color: var(--neutral-bright); }
+.unknown .leftScore { color: var(--left-bright); }
+.unknown .rightScore { color: var(--right-bright); }
 
 .versus {
     color: #d8d8d8;

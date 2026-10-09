@@ -53,6 +53,7 @@ class StateManager:
         return {
             "label": "",
             "first_pick": 0,  # 0 = not shown, otherwise team 1 or 2
+            "player_names": True,  # False shows hero picks only, without player names
             "teams": [
                 {"picks": [None] * game_info.draft["picks"], "bans": [None] * game_info.draft["bans"]}
                 for _ in (1, 2)
@@ -140,10 +141,11 @@ class StateManager:
                           + ("; teams swapped." if decision == "swap" else "."))
         return decision == "swap"
 
-    def set_draft_slot(self, team, kind, slot, hero):
+    def set_draft_slot(self, team, kind, slot, hero, move=False):
         """Place a hero in one team's pick or ban slot; None clears the slot.
 
-        A hero can occupy only one slot across both teams' picks and bans.
+        A hero can occupy only one slot across both teams' picks and bans: with move, a hero
+        already in another slot leaves it for this one.
         """
         if self.draft is None:
             raise ValueError("This game does not have a hero draft.")
@@ -164,9 +166,20 @@ class StateManager:
                 for other_kind in ("picks", "bans"):
                     for other_slot, name in enumerate(other[other_kind]):
                         if name == hero and (index, other_kind, other_slot) != (team - 1, kind, slot):
+                            if move:
+                                other[other_kind][other_slot] = None
+                                continue
                             selection = "picked" if other_kind == "picks" else "banned"
                             raise ValueError(f"{hero} is already {selection} by team {index + 1}.")
         slots[slot] = hero
+
+    def pick_players(self, team):
+        """The player under each pick: roster player N drafted pick N; None for hero picks only."""
+        picks = self.draft["teams"][team - 1]["picks"]
+        if not self.draft["player_names"]:
+            return [None] * len(picks)
+        players = self.match_info.team_info(team)["Players"]
+        return [players[slot] if slot < len(players) else None for slot in range(len(picks))]
 
     def set_draft_details(self, **changes):
         """Update the draft's match label and/or first pick (0 hides the marker)."""
@@ -181,7 +194,9 @@ class StateManager:
             if not isinstance(label, str) or len(label.strip()) > 80:
                 raise ValueError("Match label must be text of up to 80 characters.")
             changes["label"] = label.strip()
-        self.draft.update((key, changes[key]) for key in ("first_pick", "label") if key in changes)
+        if "player_names" in changes and type(changes["player_names"]) is not bool:
+            raise ValueError("Player names must be on or off.")
+        self.draft.update((key, changes[key]) for key in ("first_pick", "label", "player_names") if key in changes)
 
     def remove_player(self, team, player):
         """Remove a player; later players keep their own picks (roster player N drafted pick N)."""
@@ -341,6 +356,7 @@ class StateManager:
                          "score": self.match_info.team_info(team)["Score"],
                          "players": self.match_info.team_info(team)["Players"],
                          "picks": draft["teams"][team - 1]["picks"],
+                         "pick_players": self.pick_players(team) if self.draft else [],
                          "bans": draft["teams"][team - 1]["bans"]}
                         for team in (1, 2)
                     ]

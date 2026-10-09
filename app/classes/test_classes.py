@@ -252,6 +252,12 @@ class StateManagerTests(unittest.TestCase):
         self.state.set_draft_slot(2, "picks", 0, "Rat King")
         self.assertEqual(self.state.draft["teams"][0]["picks"][0], None)
         self.assertEqual(self.state.draft["teams"][1], {"picks": ["Rat King"] + [None] * 5, "bans": [None, "Mo & Krill"]})
+        # Moving takes the hero out of its old slot, across teams and kinds.
+        self.state.set_draft_slot(1, "bans", 0, "Rat King", move=True)
+        self.state.set_draft_slot(1, "picks", 3, "mo & krill", move=True)
+        self.assertEqual(self.state.draft["teams"][1], {"picks": [None] * 6, "bans": [None, None]})
+        self.assertEqual(self.state.draft["teams"][0]["bans"][0], "Rat King")
+        self.assertEqual(self.state.draft["teams"][0]["picks"][3], "Mo & Krill")
 
     def test_draft_post_request_and_side_swap(self):
         self.state.load_game("Deadlock")
@@ -268,7 +274,8 @@ class StateManagerTests(unittest.TestCase):
         data = json.loads(self.state.create_post_request())["scenes"]["pregame"][0]["data"]
         self.assertEqual((data["label"], data["first_pick"]), ("Grand Final", 1))
         self.assertEqual(data["teams"][0], {"name": "Team 1", "score": 0, "players": ["Player 1"],
-                                            "picks": ["Haze"] + [None] * 5, "bans": [None, None]})
+                                            "picks": ["Haze"] + [None] * 5,
+                                            "pick_players": ["Player 1"] + [None] * 5, "bans": [None, None]})
         self.state.enable_component("ingame", "Deadlock Top Bar")
         top_bar = json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["data"]
         self.assertEqual({**top_bar, "scene": "pregame"}, data)
@@ -442,6 +449,24 @@ class DeadlockSidesTests(unittest.TestCase):
         self.state.set_sides(left=1)
         self.assertEqual(self.state.match_info.team_info(1)["Players"], ["Rook", "Vale"])
         self.assertTrue(self.state.sides["known"])
+
+
+class PlayerNamesTests(unittest.TestCase):
+    def test_hero_picks_only_hides_player_names(self):
+        state = StateManager("Deadlock")
+        state.match_info.add_player(1, "Alpha")
+        state.set_draft_slot(1, "picks", 0, "Haze")
+        state.enable_component("pregame", "Hero Draft")
+
+        def pick_players():
+            scene = json.loads(state.create_post_request())["scenes"]["pregame"][0]
+            return scene["data"]["teams"][0]["pick_players"]
+
+        self.assertEqual(pick_players(), ["Alpha"] + [None] * 5)
+        state.set_draft_details(player_names=False)
+        self.assertEqual(pick_players(), [None] * 6)
+        with self.assertRaises(ValueError):
+            state.set_draft_details(player_names="no")
 
 
 class PrintInfoTests(unittest.TestCase):

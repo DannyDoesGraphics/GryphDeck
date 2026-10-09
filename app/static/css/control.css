@@ -166,11 +166,15 @@ footer > span:first-child { font-family: "Antonio", sans-serif; letter-spacing: 
 .sides-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
 .sides-section .component { width: 100%; }
 .draft-form { margin-bottom: 24px; }
+.draft-form .component { width: 100%; margin-top: 12px; }
 .draft-form .team-fields { grid-template-columns: minmax(0, 1fr) 96px; }
 .draft-feedback { margin-top: 8px; }
 .draft-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
 .ban-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .hero-select { font-size: .8rem; }
+.move-confirm { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .8rem; }
+.move-confirm span { flex: 1; min-width: 12em; }
+.move-confirm button { padding: 6px 12px; font-size: .8rem; }
 .players.with-picks { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.3fr) auto; column-gap: 10px; }
 .players.with-picks .player { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
 .open-slot { color: var(--dark-gray); }

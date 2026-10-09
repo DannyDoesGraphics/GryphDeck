@@ -3,8 +3,8 @@
 //
 // Loaded by the GryphDeck mod's copy of hud_spectate_bar, so it only runs while spectating.
 // Once a second it reads each CitadelHudTopBarTeam (class team1 = Hidden King, team2 =
-// Archmother) and the PlayerName / HeroName labels of its players, and prints a line
-//   GRYPHDECK {"type":"teams","teams":[{"side":1,"players":[{"name":..,"hero":..}]},..]}
+// Archmother) and the PlayerName / HeroName labels and lane of its players, and prints a line
+//   GRYPHDECK {"type":"teams","teams":[{"side":1,"players":[{"name":..,"hero":..,"lane":..}]},..]}
 // to the console when it changes (and every 10 seconds regardless). Deadlock started with
 // -condebug copies the console to citadel/console.log, where tools/deadlock/spectator.py
 // picks it up and forwards it to GryphDeck.
@@ -31,6 +31,13 @@
         return text;
     }
 
+    // The top bar marks each player with their lane once lanes are assigned: LaneNum1 yellow,
+    // LaneNum4 blue, LaneNum6 green. 0 until then.
+    function laneOf(panel) {
+        for (let lane = 1; lane <= 8; lane++) if (panel.BHasClass("LaneNum" + lane)) return lane;
+        return 0;
+    }
+
     function readTeams() {
         const teams = [];
         walk(root($.GetContextPanel()), panel => {
@@ -39,7 +46,7 @@
             const players = [];
             walk(panel, child => {
                 if (child.paneltype === "CitadelHudTopBarPlayer") {
-                    players.push({ name: labelText(child, "PlayerName"), hero: labelText(child, "HeroName") });
+                    players.push({ name: labelText(child, "PlayerName"), hero: labelText(child, "HeroName"), lane: laneOf(child) });
                 }
             });
             teams.push({ side, players });

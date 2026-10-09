@@ -169,15 +169,67 @@ function heroSelect(team, kind, slot, label) {
   select.dataset.kind = kind;
   select.dataset.slot = slot;
   select.setAttribute("aria-label", label);
-  select.addEventListener("change", async () => {
+  const choose = async move => {
     const success = await send(
-      { action: "set_draft_slot", team, kind, slot, hero: select.value || null },
+      { action: "set_draft_slot", team, kind, slot, hero: select.value || null, move },
       `${select.value || "Slot"} ${select.value ? (kind === "picks" ? "picked" : "banned") : "cleared"}.`,
     );
     draftFeedback(success);
     document.querySelector(`.hero-select[data-draft-team="${team}"][data-kind="${kind}"][data-slot="${slot}"]`)?.focus();
+  };
+  select.addEventListener("change", () => {
+    // Choosing again drops any move still waiting for an answer.
+    const hero = select.value;
+    document.querySelector(".move-confirm")?.cancel();
+    select.value = hero;
+    const from = draftSlotOf(select.value);
+    if (from) confirmMove(select, from, () => choose(true));
+    else choose(false);
   });
   return select;
+}
+
+// Where a hero sits in the draft, e.g. "Catnip Inc pick 2", or null.
+function draftSlotOf(hero) {
+  if (!hero || !state.draft) return null;
+  for (const [index, team] of state.draft.teams.entries()) {
+    for (const kind of ["picks", "bans"]) {
+      const slot = team[kind].indexOf(hero);
+      if (slot >= 0) return `${state.teams[index].Name || sideNames()[index]} ${kind === "picks" ? "pick" : "ban"} ${slot + 1}`;
+    }
+  }
+  return null;
+}
+
+// Taking a hero from another slot shows on stream at once, so it is confirmed next to the select.
+function confirmMove(select, from, move) {
+  const previous = state.draft.teams[select.dataset.draftTeam - 1][select.dataset.kind][Number(select.dataset.slot)] || "";
+  const box = element("div", "move-confirm");
+  box.setAttribute("role", "group");
+  box.append(element("span", "", `Move ${select.value} from ${from}?`));
+  const confirm = element("button", "primary", "Move");
+  const cancel = element("button", "secondary", "Cancel");
+  confirm.type = cancel.type = "button";
+  box.cancel = () => {
+    box.remove();
+    select.value = previous;
+  };
+  confirm.addEventListener("click", () => {
+    box.remove();
+    move();
+  });
+  cancel.addEventListener("click", () => {
+    box.cancel();
+    select.focus();
+  });
+  box.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    box.cancel();
+    select.focus();
+  });
+  box.append(confirm, cancel);
+  select.after(box);
+  confirm.focus();
 }
 
 function draftFeedback(success) {
@@ -199,6 +251,12 @@ function draftFeedback(success) {
     timer = setTimeout(saveLabel, 450);
   });
   form.elements.label.addEventListener("change", saveLabel);
+  const names = form.querySelector("#draft-player-names");
+  names.addEventListener("click", async () => {
+    const player_names = !state.draft.player_names;
+    draftFeedback(await send({ action: "update_draft", player_names }, player_names ? "Player names shown on picks." : "Hero picks only."));
+    names.focus();
+  });
   form.elements.first_pick.addEventListener("change", async () => {
     draftFeedback(await send({ action: "update_draft", first_pick: Number(form.elements.first_pick.value) }, "First pick updated."));
     form.elements.first_pick.focus();
@@ -217,7 +275,7 @@ function renderDraft({ game }) {
   const form = draftForm;
   if (game || document.activeElement !== form.elements.label) form.elements.label.value = draft.label;
   form.elements.first_pick.value = String(draft.first_pick);
-  const taken = new Set(draft.teams.flatMap(team => [...team.picks, ...team.bans]).filter(Boolean));
+  form.querySelector("#draft-player-names").setAttribute("aria-pressed", String(draft.player_names));
 
   draft.teams.forEach((team, index) => {
     const slots = document.querySelector(`[data-bans="${index + 1}"] .ban-slots`);
@@ -228,12 +286,12 @@ function renderDraft({ game }) {
   });
   document.querySelectorAll(".hero-select").forEach(select => {
     const current = draft.teams[select.dataset.draftTeam - 1][select.dataset.kind][Number(select.dataset.slot)] || "";
+    // Heroes in another slot stay choosable: picking one moves it here, after a confirmation.
     select.replaceChildren(new Option("—", ""), ...draft.choices.map(name => {
-      const option = new Option(name, name);
-      option.disabled = taken.has(name) && name !== current;
-      return option;
+      const from = name === current ? null : draftSlotOf(name);
+      return new Option(from ? `${name} · ${from}` : name, name);
     }));
-    select.value = current;
+    if (!select.nextElementSibling?.matches(".move-confirm")) select.value = current;
   });
 }
 

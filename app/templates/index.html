@@ -48,7 +48,8 @@
                   <div><label for="draft-label">Match label</label><input id="draft-label" name="label" placeholder="e.g. Grand Final · Game 2 · Bo3" maxlength="80" autocomplete="off"></div>
                   <div><label for="draft-first-pick">First pick</label><select id="draft-first-pick" name="first_pick"><option value="0">None</option><option value="1" data-side-name="1">Left</option><option value="2" data-side-name="2">Right</option></select></div>
                 </div>
-                <p class="draft-feedback hint" role="status" aria-live="polite">Each hero can fill one slot across both teams.</p>
+                <button id="draft-player-names" class="component" type="button" aria-pressed="true"><span class="component-name">Player names on picks</span><span class="toggle" aria-hidden="true"></span></button>
+                <p class="draft-feedback hint" role="status" aria-live="polite">Each hero fills one slot across both teams; choosing a taken hero moves it.</p>
               </form>
               <div class="team-grid">
                 {% for team in (1, 2) %}

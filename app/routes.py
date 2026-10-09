@@ -117,11 +117,12 @@ def update_state():
                 state.swap_sides()
             elif action == "set_draft_slot":
                 hero = data.get("hero")
-                state.set_draft_slot(data.get("team"), data.get("kind"), data.get("slot"), hero or None)
+                state.set_draft_slot(data.get("team"), data.get("kind"), data.get("slot"), hero or None,
+                                     move=data.get("move") is True)
             elif action == "update_draft":
-                changes = {key: data[key] for key in ("label", "first_pick") if key in data}
+                changes = {key: data[key] for key in ("label", "first_pick", "player_names") if key in data}
                 if not changes:
-                    raise ValueError("Provide a match label or first pick.")
+                    raise ValueError("Provide a match label, first pick, or player names.")
                 state.set_draft_details(**changes)
             elif action == "update_sides":
                 changes = {key: data[key] for key in ("left", "known", "auto") if key in data}
