@@ -21,6 +21,22 @@ h1, h2, h3, p { margin: 0; }
 .overlay-slot[data-location="BottomLeft"] { bottom: var(--inset); left: var(--inset); }
 .overlay-slot[data-location="BottomCenter"] { bottom: var(--inset); left: 50%; transform: translateX(-50%); }
 .overlay-slot[data-location="BottomRight"] { bottom: var(--inset); right: var(--inset); }
+/* Position containers keep their full-size layout; only their content is scaled. */
+.overlay-background > :not([data-scale-layout="internal"]),
+.overlay-scaled > :not([data-scale-layout="internal"]) {
+  scale: var(--element-scale, 1);
+  transform-origin: var(--element-origin, center);
+}
+.overlay-slot[data-location^="Top"] { --element-origin-y: top; }
+.overlay-slot[data-location^="Bottom"] { --element-origin-y: bottom; }
+.overlay-slot[data-location="TopLeft"] { --element-origin: left top; }
+.overlay-slot[data-location="TopCenter"] { --element-origin: center top; }
+.overlay-slot[data-location="TopRight"] { --element-origin: right top; }
+.overlay-slot[data-location="CenterLeft"] { --element-origin: left center; }
+.overlay-slot[data-location="CenterRight"] { --element-origin: right center; }
+.overlay-slot[data-location="BottomLeft"] { --element-origin: left bottom; }
+.overlay-slot[data-location="BottomCenter"] { --element-origin: center bottom; }
+.overlay-slot[data-location="BottomRight"] { --element-origin: right bottom; }
 .overlay-component { width: min(520px, 100%); min-width: min(280px, calc(100vw - 48px)); padding: 18px 22px; border: 2px solid #747676; border-top-color: var(--red); border-radius: 12px; background: rgb(0 0 0 / 72%); overflow-wrap: anywhere; }
 .overlay-component h2 { font-family: "Antonio", sans-serif; font-size: clamp(18px, 1.5vw, 28px); font-weight: 600; margin-bottom: 12px; }
 .overlay-component h3 { font-size: clamp(14px, 1.2vw, 20px); color: var(--gold); margin-bottom: 10px; }

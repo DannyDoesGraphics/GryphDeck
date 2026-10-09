@@ -22,7 +22,8 @@ function FittedText({ children, className, sizeRatio = 0.65 }) {
             while (high - low > 0.25) {
                 const size = (low + high) / 2;
                 text.style.fontSize = `${size}px`;
-                if (text.scrollWidth <= Math.ceil(width) && text.getBoundingClientRect().height <= height) {
+                // Use layout dimensions so the overlay scale does not affect text fitting.
+                if (text.scrollWidth <= Math.ceil(width) && text.offsetHeight <= Math.ceil(height)) {
                     low = size;
                 } else {
                     high = size;
@@ -65,22 +66,29 @@ export function ScoreIngame({ scene }) {
     const right = scene?.teams?.[1] || { name: "", score: 0 };
 
     return (
-        <div className={styles.frame} role="group" aria-label="Match score">
-            <img src="/static/Score Ingame.png" alt="" className={styles.background} />
-            <div className={styles.content}>
-                <div className={`${styles.team} ${styles.leftTeam}`}>
-                    <FittedText className={styles.leftName}>{left.name || "Team 1"}</FittedText>
-                    <TeamLogo name={left.name} />
+        <div className={styles.frame} data-scale-layout="internal" role="group" aria-label="Match score">
+            <div className={`${styles.panel} ${styles.leftPanel}`}>
+                <img src="/static/Score Ingame.png" alt="" className={styles.background} />
+                <div className={styles.content}>
+                    <div className={`${styles.team} ${styles.leftTeam}`}>
+                        <FittedText className={styles.leftName}>{left.name || "Team 1"}</FittedText>
+                        <TeamLogo name={left.name} />
+                    </div>
+                    <FittedText className={`${styles.score} ${styles.leftScore}`} sizeRatio={0.9}>
+                        {String(left.score ?? 0).padStart(2, "0")}
+                    </FittedText>
                 </div>
-                <FittedText className={`${styles.score} ${styles.leftScore}`} sizeRatio={0.9}>
-                    {String(left.score ?? 0).padStart(2, "0")}
-                </FittedText>
-                <FittedText className={`${styles.score} ${styles.rightScore}`} sizeRatio={0.9}>
-                    {String(right.score ?? 0).padStart(2, "0")}
-                </FittedText>
-                <div className={`${styles.team} ${styles.rightTeam}`}>
-                    <TeamLogo name={right.name} />
-                    <FittedText className={styles.rightName}>{right.name || "Team 2"}</FittedText>
+            </div>
+            <div className={`${styles.panel} ${styles.rightPanel}`}>
+                <img src="/static/Score Ingame.png" alt="" className={styles.background} />
+                <div className={styles.content}>
+                    <FittedText className={`${styles.score} ${styles.rightScore}`} sizeRatio={0.9}>
+                        {String(right.score ?? 0).padStart(2, "0")}
+                    </FittedText>
+                    <div className={`${styles.team} ${styles.rightTeam}`}>
+                        <TeamLogo name={right.name} />
+                        <FittedText className={styles.rightName}>{right.name || "Team 2"}</FittedText>
+                    </div>
                 </div>
             </div>
         </div>

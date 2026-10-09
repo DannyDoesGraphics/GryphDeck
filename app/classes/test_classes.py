@@ -191,6 +191,26 @@ class StateManagerTests(unittest.TestCase):
         self.state.disable_component("ingame", "Score Ingame")
         self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"], [])
 
+    def test_post_request_includes_configured_scales_and_defaults_missing_scales(self):
+        for element in self.state.game_info.element_positions:
+            element.pop("Scale", None)
+            if element["Name"] == "Score Ingame":
+                element["Scale"] = 0.5
+            elif element["Name"] == "Sponsorships Badge":
+                element["Scale"] = 1.5
+        self.state.enable_component("idle", "Starting Soon")
+        self.state.enable_component("ingame", "Score Ingame")
+        for scene in ("idle", "pregame", "ingame"):
+            self.state.enable_component(scene, "Sponsorships Badge")
+        scenes = json.loads(self.state.create_post_request())["scenes"]
+        for components in scenes.values():
+            for component in components:
+                expected = {"Score Ingame": 0.5, "Sponsorships Badge": 1.5}.get(component["name"], 1)
+                self.assertEqual(component["scale"], expected)
+        self.state.load_game("Overwatch")
+        self.state.enable_component("ingame", "Score Ingame")
+        self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["scale"], 1)
+
     def test_post_request_uses_live_rosters_scores_and_side_order(self):
         for team in (1, 2):
             self.state.match_info.update_team_name(team, f"Team {team}")

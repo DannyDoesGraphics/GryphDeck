@@ -85,7 +85,7 @@ export default function SceneView({ scene }) {
   return (
     <main className="overlay-canvas" data-scene={scene} aria-label={`${scene} overlay`}>
       {backgroundComponents.map((component, index) => (
-        <div className="overlay-background" key={index}>
+        <div className="overlay-background" style={{ "--element-scale": component.scale ?? 1 }} key={index}>
           <ComponentContent component={component} />
         </div>
       ))}
@@ -95,7 +95,7 @@ export default function SceneView({ scene }) {
         return placed.length > 0 && (
           <div className="overlay-slot" data-location={location} key={location}>
             {placed.map((component, index) => (
-              <section key={index}>
+              <section className="overlay-scaled" style={{ "--element-scale": component.scale ?? 1 }} key={index}>
                 <ComponentContent component={component} />
               </section>
             ))}

@@ -54,7 +54,10 @@ Run the control API and class tests together:
 `StateManager.create_post_request()` returns a JSON string with `game` and
 `scenes`. The `scenes` object always contains `idle`, `pregame`, and `ingame`
 arrays, containing only the components whose toggles are enabled. Each entry
-has `name`, `location` (from the game JSON's `Position`), and `data`.
+has `name`, `location` (from the game JSON's `Position`), `scale` (from `Scale`,
+defaulting to `1`), and `data`. Scaling keeps the configured position anchored:
+`1` preserves the current size, `0.5` halves it, and `2` doubles it. After editing
+the game JSON, reload the game in the control panel to apply the new values.
 
 Every component's `data` includes `game` and `scene`. Dynamic components also
 include their current values:

@@ -12,6 +12,7 @@ export function validOverlay(document) {
     && SCENES.every(scene => Array.isArray(document.scenes[scene]) && document.scenes[scene].every(component => {
       if (!object(component) || typeof component.name !== "string" || !component.name
           || !LOCATIONS.includes(component.location) || !object(component.data)) return false;
+      if ("scale" in component && (!Number.isFinite(component.scale) || component.scale < 0)) return false;
       const data = component.data;
       if (typeof data.game !== "string" || data.scene !== scene) return false;
       if ("map_picks" in data && !strings(data.map_picks)) return false;
