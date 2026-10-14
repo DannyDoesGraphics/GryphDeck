@@ -6,6 +6,9 @@ from unittest.mock import patch
 from urllib.error import URLError
 
 from app import create_app
+from app.classes.TeamSource import SOURCES
+from app.classes.TeamSource import logger as source_log
+from app.classes.test_classes import MANUAL, FlakySource, LockedSource, ValorantSource
 
 
 class ControlTests(unittest.TestCase):
@@ -98,7 +101,13 @@ class ControlTests(unittest.TestCase):
                 self.assertIs(self.manager.match_info, match)
                 self.assertEqual(
                     state["teams"][0],
-                    {"Name": "Gryphons", "Score": 5, "Players": ["Captain"]},
+                    {
+                        "Name": "Gryphons",
+                        "Score": 5,
+                        "Players": ["Captain"],
+                        "Source": MANUAL,
+                        "Extra": {},
+                    },
                 )
                 self.assertFalse(
                     any(
@@ -110,10 +119,20 @@ class ControlTests(unittest.TestCase):
 
     def test_team_fields_save_independently(self):
         state = self.action("update_team", team=1, score=3)
-        self.assertEqual(state["teams"][0], {"Name": "", "Score": 3, "Players": []})
+        self.assertEqual(
+            state["teams"][0],
+            {"Name": "", "Score": 3, "Players": [], "Source": MANUAL, "Extra": {}},
+        )
         state = self.action("update_team", team=1, name="Gryphons")
         self.assertEqual(
-            state["teams"][0], {"Name": "Gryphons", "Score": 3, "Players": []}
+            state["teams"][0],
+            {
+                "Name": "Gryphons",
+                "Score": 3,
+                "Players": [],
+                "Source": MANUAL,
+                "Extra": {},
+            },
         )
         for fields in (
             {},
@@ -234,6 +253,10 @@ class ControlTests(unittest.TestCase):
             {"action": "add_player", "team": 1, "player": "   "},
             {"action": "add_player", "team": True, "player": "Player"},
             {"action": "remove_player", "team": 1, "player": "Missing"},
+            {"action": "set_team_source", "team": 1, "source": "unknown"},
+            {"action": "set_team_source", "team": 1, "source": ["manual"]},
+            {"action": "set_team_source", "team": 1},
+            {"action": "set_team_source", "team": 3, "source": "manual"},
         ]
         for score in (-1, 1000, 1.5, "3", True, None):
             payloads.append(
@@ -249,6 +272,95 @@ class ControlTests(unittest.TestCase):
                 response = self.client.post("/api/control", json=payload)
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(self.client.get("/api/state").get_json(), before)
+
+    def test_team_sources(self):
+        state = self.client.get("/api/state").get_json()
+        self.assertEqual(
+            state["sources"],
+            [
+                {
+                    "kind": "manual",
+                    "label": "Manual",
+                    "description": "Name and roster are entered here.",
+                },
+            ],
+        )
+        self.action("update_team", team=1, name="Gryphons", score=2)
+        self.action("add_player", team=1, player="Captain")
+        before = self.client.get("/api/state").get_json()
+        self.assertEqual(
+            self.action("set_team_source", team=1, source="manual"), before
+        )
+
+    def test_sources_follow_the_loaded_game(self):
+        with patch.dict(SOURCES, {"valorant": ValorantSource}):
+            state = self.action("set_team_source", team=2, source="valorant")
+            self.assertEqual(
+                [option["kind"] for option in state["sources"]], ["manual", "valorant"]
+            )
+            state = self.action("load_game", game="Overwatch")
+        self.assertEqual([option["kind"] for option in state["sources"]], ["manual"])
+        self.assertEqual(
+            state["teams"][1],
+            {
+                "Name": "Valorant Team",
+                "Score": 0,
+                "Players": ["Agent"],
+                "Source": MANUAL,
+                "Extra": {},
+            },
+        )
+
+    def test_failing_source_keeps_the_deck_up(self):
+        source = self.manager.match_info.sources[1] = FlakySource()
+        self.client.get("/api/state")
+        source.failure = RuntimeError("feed down")
+        with self.assertLogs(source_log, "ERROR"):
+            response = self.client.get("/api/state")
+        self.assertEqual(response.status_code, 200)
+        team = response.get_json()["teams"][1]
+        self.assertEqual(
+            (team["Name"], team["Players"], team["Source"]["Error"]),
+            ("Fetched", ["Remote"], "RuntimeError: feed down"),
+        )
+        self.assertEqual(
+            self.action("update_team", team=1, name="Still works")["teams"][0]["Name"],
+            "Still works",
+        )
+
+    def test_locked_source_rejects_name_and_roster_but_keeps_score(self):
+        self.manager.match_info.sources[1] = LockedSource()
+        before = self.client.get("/api/state").get_json()
+        self.assertEqual(
+            before["teams"][1]["Source"],
+            {"Kind": "locked", "Label": "Locked", "Error": None},
+        )
+        for payload in (
+            {"action": "update_team", "team": 2, "name": "Changed"},
+            {"action": "update_team", "team": 2, "name": "Changed", "score": 1},
+            {"action": "add_player", "team": 2, "player": "Extra"},
+            {"action": "remove_player", "team": 2, "player": "Remote"},
+        ):
+            with self.subTest(payload=payload):
+                response = self.client.post("/api/control", json=payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("source", response.get_json()["error"])
+                self.assertEqual(self.client.get("/api/state").get_json(), before)
+        self.assertEqual(
+            self.action("update_team", team=2, score=4)["teams"][1]["Score"], 4
+        )
+        state = self.action("set_team_source", team=2, source="manual")
+        self.assertEqual(
+            state["teams"][1],
+            {
+                "Name": "Fetched",
+                "Score": 4,
+                "Players": ["Remote"],
+                "Source": MANUAL,
+                "Extra": {"wins": 4},
+            },
+        )
+        self.action("add_player", team=2, player="Extra")
 
     def test_failed_load_retains_current_game(self):
         before = self.client.get("/api/state").get_json()

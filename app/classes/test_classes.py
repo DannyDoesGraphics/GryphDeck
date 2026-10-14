@@ -3,6 +3,7 @@
 import io
 import json
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -11,13 +12,67 @@ if __package__:
     from .GameInfo import GameInfo
     from .MatchInfo import MatchInfo
     from .StateManager import StateManager
+    from .TeamSource import (
+        SOURCE_DIR,
+        ManualSource,
+        TeamSource,
+        load_sources,
+    )
+    from .TeamSource import logger as source_log
 else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
     from StateManager import StateManager
+    from TeamSource import (
+        SOURCE_DIR,
+        ManualSource,
+        TeamSource,
+        load_sources,
+    )
+    from TeamSource import logger as source_log
 
 
+IMPORT = """if __package__:
+    from ..TeamSource import TeamSource
+else:
+    from TeamSource import TeamSource
+"""
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "json"
+MANUAL = {"Kind": "manual", "Label": "Manual", "Error": None}
+
+
+class LockedSource(TeamSource):
+    """A read-only source standing in for one fetched from elsewhere."""
+
+    kind = "locked"
+    label = "Locked"
+
+    def fetch(self):
+        return {"name": "Fetched", "players": ["Remote"], "extra": {"wins": 4}}
+
+
+class ValorantSource(TeamSource):
+    """A source that only works while Valorant is loaded."""
+
+    kind = "valorant"
+    label = "Valorant only"
+    games = ("Valorant",)
+
+    def fetch(self):
+        return {"name": "Valorant Team", "players": ["Agent"], "extra": {}}
+
+
+class FlakySource(LockedSource):
+    """A read-only source whose fetch() raises `failure` once it is set."""
+
+    kind = "flaky"
+    label = "Flaky"
+    failure = None
+
+    def fetch(self):
+        if self.failure:
+            raise self.failure
+        return super().fetch()
 
 
 class GameInfoTests(unittest.TestCase):
@@ -60,6 +115,8 @@ class MatchInfoTests(unittest.TestCase):
                     "Name": "",
                     "Score": 0,
                     "Players": [],
+                    "Source": MANUAL,
+                    "Extra": {},
                 },
             )
 
@@ -73,6 +130,8 @@ class MatchInfoTests(unittest.TestCase):
                     "Name": name,
                     "Score": score,
                     "Players": [],
+                    "Source": MANUAL,
+                    "Extra": {},
                 },
             )
 
@@ -109,10 +168,130 @@ class MatchInfoTests(unittest.TestCase):
         self.assertEqual(self.match.team_info(1), before[0])
         self.assertEqual(self.match.team_info(2), before[1])
 
+    def test_manual_source_keeps_current_team(self):
+        self.match.update_team_name(1, "Gryphons")
+        self.match.add_player(1, "Captain")
+        self.match.sources[0].extra["wins"] = 2
+        before = self.match.team_info(1)
+        self.assertTrue(self.match.set_source(1, "manual"))
+        self.assertEqual(self.match.team_info(1), before)
+        self.assertFalse(self.match.set_source(3, "manual"))
+        with self.assertRaises(ValueError):
+            self.match.set_source(1, "unknown")
+        self.assertEqual(self.match.team_info(1), before)
+
+    def test_locked_source_rejects_name_and_roster_edits(self):
+        self.match.sources[0] = LockedSource()
+        before = self.match.team_info(1)
+        self.assertFalse(self.match.editable(1))
+        self.assertFalse(self.match.update_team_name(1, "Changed"))
+        self.assertFalse(self.match.add_player(1, "Extra"))
+        self.assertFalse(self.match.remove_player(1, "Remote"))
+        self.assertEqual(self.match.team_info(1), before)
+        self.assertTrue(self.match.update_team_score(1, 2))
+        self.assertEqual(self.match.team_info(1)["Score"], 2)
+        self.match.set_source(1, "manual")
+        self.assertEqual(
+            self.match.team_info(1),
+            {
+                "Name": "Fetched",
+                "Score": 2,
+                "Players": ["Remote"],
+                "Source": MANUAL,
+                "Extra": {"wins": 4},
+            },
+        )
+        self.assertTrue(self.match.add_player(1, "Extra"))
+
+    def test_swap_sides_moves_sources(self):
+        self.match.sources[0] = LockedSource()
+        self.match.swap_sides()
+        self.assertTrue(self.match.editable(1))
+        self.assertFalse(self.match.editable(2))
+        self.assertEqual(self.match.team_info(2)["Name"], "Fetched")
+
+
+class TeamSourceTests(unittest.TestCase):
+    def test_manual_snapshot_is_a_copy(self):
+        source = ManualSource("Gryphons", ["Captain"], {"stats": {"wins": 1}})
+        snapshot = source.fetch()
+        snapshot["players"].append("Intruder")
+        snapshot["extra"]["stats"]["wins"] = 9
+        self.assertEqual(
+            source.fetch(),
+            {
+                "name": "Gryphons",
+                "players": ["Captain"],
+                "extra": {"stats": {"wins": 1}},
+            },
+        )
+
+    def test_switching_to_manual_keeps_the_team(self):
+        match = MatchInfo()
+        match.sources[0] = LockedSource()
+        self.assertTrue(match.set_source(1, "manual"))
+        self.assertIsInstance(match.sources[0], ManualSource)
+        self.assertEqual(match.sources[0].fetch(), LockedSource().fetch())
+        for kind in ("unknown", "", None, ["manual"], {"kind": "manual"}):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                match.set_source(1, kind)
+
+    def test_failing_fetch_keeps_the_team(self):
+        match = MatchInfo()
+        source = match.sources[1] = FlakySource()
+
+        def fetched(error):
+            return {
+                "Name": "Fetched",
+                "Score": 0,
+                "Players": ["Remote"],
+                "Extra": {"wins": 4},
+                "Source": {
+                    "Kind": "flaky",
+                    "Label": "Flaky",
+                    "Error": error,
+                },
+            }
+
+        self.assertEqual(match.team_info(2), fetched(None))
+        source.failure = RuntimeError("feed down")
+        with self.assertLogs(source_log, "ERROR"):
+            self.assertEqual(match.team_info(2), fetched("RuntimeError: feed down"))
+        match.set_source(2, "manual")
+        self.assertEqual(match.sources[1].fetch(), LockedSource().fetch())
+        match.sources[1] = source
+        source.failure = None
+        self.assertEqual(match.team_info(2), fetched(None))
+
+    def test_load_sources_skips_files_that_fail_to_import(self):
+        files = {
+            "Manual.py": (SOURCE_DIR / "Manual.py").read_text(encoding="utf-8"),
+            "Alpha.py": IMPORT
+            + "class Alpha(TeamSource):\n    kind = 'alpha'\n    label = 'Alpha'\n    def fetch(self): return {}\n",
+            "Syntax.py": "def broken(:\n",
+            "Crash.py": "raise RuntimeError('import failed')\n",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            for name, text in files.items():
+                Path(directory, name).write_text(text, encoding="utf-8")
+            with self.assertLogs(source_log, "ERROR"):
+                sources = load_sources(Path(directory))
+        self.assertEqual(list(sources), ["manual", "alpha"])
+
 
 class StateManagerTests(unittest.TestCase):
     def setUp(self):
         self.state = StateManager("Valorant")
+
+    def test_load_game_moves_unsupported_sources_to_manual(self):
+        match = self.state.match_info
+        match.sources = [ValorantSource(), LockedSource()]
+        self.state.load_game("Valorant")
+        self.assertIsInstance(match.sources[0], ValorantSource)
+        self.state.load_game("Overwatch")
+        self.assertIsInstance(match.sources[0], ManualSource)
+        self.assertEqual(match.sources[0].fetch(), ValorantSource().fetch())
+        self.assertIsInstance(match.sources[1], LockedSource)
 
     def test_initial_game_and_match(self):
         self.assertIsInstance(self.state.game_info, GameInfo)

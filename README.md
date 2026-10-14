@@ -33,9 +33,16 @@ from `app/json` in the game selector.
 - Click a component in **Idle**, **Pregame**, or **Ingame** to enable
   or disable it. The same button displays its state. Components at the same
   position replace each other; toggles are independent between scenes.
+- Each team has a **Source**: where its name and roster come from. A source can
+  also carry metadata team info (`Extra` in `/api/state`) for later use.
 - Team names and scores save automatically. Add or remove
   players individually. **Swap sides** calls `MatchInfo.swap_sides()` to swap
-  the saved team names, scores, and rosters.
+  the saved team names, scores, rosters, and sources.
+
+Sources are all stored within `app/classes/sources` which each file dedicated to
+**only one source**. Sources are automatically added per each file added. However,
+sources are 'sandboxed' via `try catch` blocks to ensure broken sources do not
+cause breakage long term.
 
 The page modifies one `StateManager` per Flask app instance, shared by clients.
 State is held in memory and resets when the server restarts; use one server

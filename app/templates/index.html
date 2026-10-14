@@ -52,6 +52,11 @@
               {% for team in (1, 2) %}
               <article class="team-card" data-team="{{ team }}" aria-labelledby="team-heading-{{ team }}">
                 <div class="team-heading"><h3 id="team-heading-{{ team }}"><span class="team-dot" aria-hidden="true"></span>{{ 'Left' if team == 1 else 'Right' }} team</h3><span class="side-label">0{{ team }}</span></div>
+                <form class="source-form">
+                  <label for="team-source-{{ team }}">Source</label>
+                  <select id="team-source-{{ team }}" name="source" aria-describedby="team-source-note-{{ team }}"></select>
+                  <p class="source-note hint" id="team-source-note-{{ team }}"></p>
+                </form>
                 <form class="team-form">
                   <div class="team-fields"><div><label for="team-name-{{ team }}">Team name</label><input id="team-name-{{ team }}" name="name" placeholder="Team {{ team }}" maxlength="80" required></div><div><label for="team-score-{{ team }}">Score</label><input id="team-score-{{ team }}" name="score" type="number" min="0" max="999" step="1" value="0" required></div></div>
                   <div class="save-feedback"><span class="save-status" role="status" aria-live="polite">Changes save automatically.</span><button class="retry-save secondary" type="button" hidden>Retry save</button></div>

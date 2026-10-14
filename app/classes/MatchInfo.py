@@ -1,56 +1,87 @@
 import json
 
+if __package__:
+    from .TeamSource import SOURCES, ManualSource
+else:
+    from TeamSource import SOURCES, ManualSource
+
 
 class MatchInfo:
     def __init__(self):
-        self.players = [[], []]
-        self.teams = [("", 0), ("", 0)]
+        self.sources = [ManualSource(), ManualSource()]
+        self.scores = [0, 0]
 
     # expects 1 or 2
     def team_info(self, teamNum):
         if teamNum > 2 or teamNum < 1:
             return None
 
+        source = self.sources[teamNum - 1]
+        team = source.try_fetch()
         return {
-            "Name": self.teams[teamNum - 1][0],
-            "Score": self.teams[teamNum - 1][1],
-            "Players": self.players[teamNum - 1],
+            "Name": team["name"],
+            "Score": self.scores[teamNum - 1],
+            "Players": team["players"],
+            "Source": {
+                "Kind": source.kind,
+                "Label": source.label,
+                "Error": source.error,
+            },
+            "Extra": team["extra"],
         }
 
-    def update_team_name(self, teamNum, name):
+    def editable(self, teamNum):
+        """Only teams on the Manual source accept name and roster changes."""
+        return 1 <= teamNum <= 2 and isinstance(self.sources[teamNum - 1], ManualSource)
+
+    def set_source(self, teamNum, kind):
+        """Switch a team's source. Switching to Manual keeps the team as it is."""
         if teamNum > 2 or teamNum < 1:
             return False
+        if not isinstance(kind, str) or kind not in SOURCES:
+            raise ValueError("Choose a source from the list.")
 
-        self.teams[teamNum - 1] = (name, self.teams[teamNum - 1][1])
+        current = self.sources[teamNum - 1]
+        self.sources[teamNum - 1] = (
+            ManualSource(**current.try_fetch()) if kind == "manual" else SOURCES[kind]()
+        )
+        return True
+
+    def update_team_name(self, teamNum, name):
+        if not self.editable(teamNum):
+            return False
+
+        self.sources[teamNum - 1].name = name
         return True
 
     def update_team_score(self, teamNum, score):
         if teamNum > 2 or teamNum < 1:
             return False
 
-        self.teams[teamNum - 1] = (self.teams[teamNum - 1][0], score)
+        self.scores[teamNum - 1] = score
         return True
 
     def add_player(self, teamNum, playerName):
-        if teamNum > 2 or teamNum < 1:
+        if not self.editable(teamNum):
             return False
 
-        self.players[teamNum - 1].append(playerName)
+        self.sources[teamNum - 1].players.append(playerName)
         return True
 
     def remove_player(self, teamNum, playerName):
-        if teamNum > 2 or teamNum < 1:
+        if not self.editable(teamNum):
             return False
 
-        if playerName in self.players[teamNum - 1]:
-            self.players[teamNum - 1].remove(playerName)
+        players = self.sources[teamNum - 1].players
+        if playerName in players:
+            players.remove(playerName)
             return True
 
         return False
 
     def swap_sides(self):
-        self.players[0], self.players[1] = self.players[1], self.players[0]
-        self.teams[0], self.teams[1] = self.teams[1], self.teams[0]
+        self.sources[0], self.sources[1] = self.sources[1], self.sources[0]
+        self.scores[0], self.scores[1] = self.scores[1], self.scores[0]
 
     def __str__(self):
         return json.dumps(
@@ -62,5 +93,5 @@ class MatchInfo:
         )
 
     def print_info(self):
-        """Print both teams, including their scores and players."""
+        """Print both teams, including their scores, players, and sources."""
         print(self)

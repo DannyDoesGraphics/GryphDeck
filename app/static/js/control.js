@@ -17,63 +17,132 @@ function element(tag, className, text) {
 function render({ teams = false, game = false } = {}) {
   if (game) {
     const select = document.querySelector("#game");
-    select.replaceChildren(...state.games.map(name => new Option(name, name)));
+    select.replaceChildren(
+      ...state.games.map((name) => new Option(name, name)),
+    );
     select.value = state.game_key;
   }
-  document.querySelectorAll("[data-scene-panel]").forEach(panel => {
+  document.querySelectorAll("[data-scene-panel]").forEach((panel) => {
     const scene = panel.dataset.scenePanel;
     const components = state.components[scene];
-    panel.querySelector(".enabled-count").textContent = `${components.filter(item => item.enabled).length} enabled`;
+    panel.querySelector(".enabled-count").textContent =
+      `${components.filter((item) => item.enabled).length} enabled`;
     const list = panel.querySelector(".components");
-    list.replaceChildren(...components.map(component => {
-      const button = element("button", "component");
-      button.type = "button";
-      button.dataset.component = component.name;
-      button.setAttribute("aria-pressed", String(component.enabled));
-      const name = element("span", "component-name", component.name);
-      name.append(element("small", "", component.position.replace(/([a-z])([A-Z])/g, "$1 $2")));
-      const toggle = element("span", "toggle");
-      toggle.setAttribute("aria-hidden", "true");
-      button.append(name, element("span", "component-state", component.enabled ? "ON" : "OFF"), toggle);
-      button.addEventListener("click", async () => {
-        await send({ action: "toggle_component", scene, component: component.name }, "Component state updated.");
-        [...list.children].find(item => item.dataset.component === component.name)?.focus();
-      });
-      return button;
-    }));
-    if (!components.length) list.append(element("p", "muted", "No components are configured for this scene."));
+    list.replaceChildren(
+      ...components.map((component) => {
+        const button = element("button", "component");
+        button.type = "button";
+        button.dataset.component = component.name;
+        button.setAttribute("aria-pressed", String(component.enabled));
+        const name = element("span", "component-name", component.name);
+        name.append(
+          element(
+            "small",
+            "",
+            component.position.replace(/([a-z])([A-Z])/g, "$1 $2"),
+          ),
+        );
+        const toggle = element("span", "toggle");
+        toggle.setAttribute("aria-hidden", "true");
+        button.append(
+          name,
+          element("span", "component-state", component.enabled ? "ON" : "OFF"),
+          toggle,
+        );
+        button.addEventListener("click", async () => {
+          await send(
+            { action: "toggle_component", scene, component: component.name },
+            "Component state updated.",
+          );
+          [...list.children]
+            .find((item) => item.dataset.component === component.name)
+            ?.focus();
+        });
+        return button;
+      }),
+    );
+    if (!components.length)
+      list.append(
+        element("p", "muted", "No components are configured for this scene."),
+      );
   });
 
   state.teams.forEach((team, index) => {
     const side = index === 0 ? "left" : "right";
-    document.querySelector(`#summary-${side}`).textContent = team.Name || `Team ${index + 1}`;
+    document.querySelector(`#summary-${side}`).textContent =
+      team.Name || `Team ${index + 1}`;
     document.querySelector(`#score-${side}`).textContent = team.Score;
     const card = document.querySelector(`[data-team="${index + 1}"]`);
-    if (teams) {
+    const editable = team.Source.Kind === "manual";
+    // Locked teams follow source, refresh on each new render
+    if (teams || !editable)
       card.querySelector('[name="name"]').value = team.Name;
-      card.querySelector('[name="score"]').value = team.Score;
-    }
-    card.querySelector(".player-count").textContent = `${team.Players.length} player${team.Players.length === 1 ? "" : "s"}`;
-    const roster = card.querySelector(".players");
-    roster.replaceChildren(...team.Players.map((player, playerIndex) => {
-      const row = element("li", "player");
-      const remove = element("button", "remove-player", "Remove");
-      remove.type = "button";
-      remove.setAttribute("aria-label", `Remove ${player} from team ${index + 1}`);
-      remove.addEventListener("click", async () => {
-        await send({ action: "remove_player", team: index + 1, player }, "Player removed.");
-        card.querySelector('[name="player"]').focus();
+    if (teams) card.querySelector('[name="score"]').value = team.Score;
+    renderSource(card, team.Source);
+    card.querySelector('[name="name"]').disabled = !editable;
+    card
+      .querySelectorAll(".player-form input, .player-form button")
+      .forEach((control) => {
+        control.disabled = !editable;
       });
-      row.append(element("span", "player-index", String(playerIndex + 1).padStart(2, "0")), element("span", "player-name", player), remove);
-      return row;
-    }));
-    if (!team.Players.length) roster.append(element("li", "empty-roster", "No players added."));
+    card.querySelector(".player-count").textContent =
+      `${team.Players.length} player${team.Players.length === 1 ? "" : "s"}`;
+    const roster = card.querySelector(".players");
+    roster.replaceChildren(
+      ...team.Players.map((player, playerIndex) => {
+        const row = element("li", "player");
+        const remove = element("button", "remove-player", "Remove");
+        remove.type = "button";
+        remove.setAttribute(
+          "aria-label",
+          `Remove ${player} from team ${index + 1}`,
+        );
+        remove.addEventListener("click", async () => {
+          await send(
+            { action: "remove_player", team: index + 1, player },
+            "Player removed.",
+          );
+          card.querySelector('[name="player"]').focus();
+        });
+        row.append(
+          element(
+            "span",
+            "player-index",
+            String(playerIndex + 1).padStart(2, "0"),
+          ),
+          element("span", "player-name", player),
+        );
+        if (editable) row.append(remove);
+        return row;
+      }),
+    );
+    if (!team.Players.length)
+      roster.append(element("li", "empty-roster", "No players added."));
   });
   renderBans({ game });
 }
 
+function renderSource(card, source) {
+  const select = card.querySelector('[name="source"]');
+  if (select.options.length !== state.sources.length) {
+    select.replaceChildren(
+      ...state.sources.map((option) => new Option(option.label, option.kind)),
+    );
+  }
+  select.value = source.Kind;
+  const option = state.sources.find((item) => item.kind === source.Kind);
+  const note = card.querySelector(".source-note");
+  note.textContent = source.Error
+    ? `${source.Label} failed: ${source.Error}. Keeping the team as it was.`
+    : option
+      ? option.description
+      : `Name and roster come from ${source.Label}.`;
+  note.classList.toggle("error", Boolean(source.Error));
+  card.dataset.locked = String(source.Kind !== "manual");
+}
+
 function renderBans({ game }) {
-  document.querySelectorAll("[data-ban-kind]").forEach(section => {
+  document.querySelectorAll("[data-ban-kind]").forEach((section) => {
     const kind = section.dataset.banKind;
     const selection = kind === "map" ? "pick" : "ban";
     const options = state.ban_options[kind];
@@ -86,28 +155,50 @@ function renderBans({ game }) {
       input.value = "";
       const feedback = section.querySelector(".ban-feedback");
       feedback.classList.remove("error");
-      feedback.textContent = options.choices.length ? `Type to search the game's ${kind === "map" ? "maps" : "heroes"}.` : `No ${kind === "map" ? "maps" : "heroes"} configured for this game.`;
+      feedback.textContent = options.choices.length
+        ? `Type to search the game's ${kind === "map" ? "maps" : "heroes"}.`
+        : `No ${kind === "map" ? "maps" : "heroes"} configured for this game.`;
     }
-    section.querySelector(".ban-count").textContent = `${selected.length} ${selection}${selected.length === 1 ? "" : "s"}`;
+    section.querySelector(".ban-count").textContent =
+      `${selected.length} ${selection}${selected.length === 1 ? "" : "s"}`;
     const suggestions = section.querySelector("datalist");
-    const available = options.choices.filter(name => !selected.includes(name));
-    if (JSON.stringify([...suggestions.options].map(option => option.value)) !== JSON.stringify(available)) {
-      suggestions.replaceChildren(...available.map(name => new Option(name, name)));
+    const available = options.choices.filter(
+      (name) => !selected.includes(name),
+    );
+    if (
+      JSON.stringify([...suggestions.options].map((option) => option.value)) !==
+      JSON.stringify(available)
+    ) {
+      suggestions.replaceChildren(
+        ...available.map((name) => new Option(name, name)),
+      );
     }
     const list = section.querySelector(".ban-list");
-    list.replaceChildren(...selected.map((name, index) => {
-      const row = element("li", "player");
-      const remove = element("button", "remove-player", "Remove");
-      remove.type = "button";
-      remove.setAttribute("aria-label", `Remove ${name} ${kind} ${selection}`);
-      remove.addEventListener("click", async () => {
-        await saveBan(section, "remove_ban", name);
-        input.focus();
-      });
-      row.append(element("span", "player-index", String(index + 1).padStart(2, "0")), element("span", "player-name", name), remove);
-      return row;
-    }));
-    if (!selected.length) list.append(element("li", "empty-roster", `No ${kind} ${selection}s added.`));
+    list.replaceChildren(
+      ...selected.map((name, index) => {
+        const row = element("li", "player");
+        const remove = element("button", "remove-player", "Remove");
+        remove.type = "button";
+        remove.setAttribute(
+          "aria-label",
+          `Remove ${name} ${kind} ${selection}`,
+        );
+        remove.addEventListener("click", async () => {
+          await saveBan(section, "remove_ban", name);
+          input.focus();
+        });
+        row.append(
+          element("span", "player-index", String(index + 1).padStart(2, "0")),
+          element("span", "player-name", name),
+          remove,
+        );
+        return row;
+      }),
+    );
+    if (!selected.length)
+      list.append(
+        element("li", "empty-roster", `No ${kind} ${selection}s added.`),
+      );
   });
 }
 
@@ -122,7 +213,9 @@ async function saveBan(section, action, name) {
 }
 
 function send(payload, message, options = {}) {
-  const request = requestQueue.then(() => performRequest(payload, message, options));
+  const request = requestQueue.then(() =>
+    performRequest(payload, message, options),
+  );
   requestQueue = request.catch(() => false);
   return request;
 }
@@ -137,7 +230,8 @@ async function performRequest(payload, message, options) {
       body: JSON.stringify(payload),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "The change could not be saved.");
+    if (!response.ok)
+      throw new Error(data.error || "The change could not be saved.");
     state = data;
     render(options);
     notice.className = "";
@@ -145,7 +239,8 @@ async function performRequest(payload, message, options) {
     return true;
   } catch (error) {
     notice.className = "error";
-    notice.textContent = error.message || "Unable to reach the server. Try again.";
+    notice.textContent =
+      error.message || "Unable to reach the server. Try again.";
     return false;
   } finally {
     if (!options.background) workspace.disabled = swapping;
@@ -153,30 +248,42 @@ async function performRequest(payload, message, options) {
   }
 }
 
-document.querySelector("#game-form").addEventListener("submit", event => {
+document.querySelector("#game-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  send({ action: "load_game", game: document.querySelector("#game").value }, "Game loaded. Components, map picks, and hero bans reset; teams retained.", { game: true });
+  send(
+    { action: "load_game", game: document.querySelector("#game").value },
+    "Game loaded. Components, map picks, and hero bans reset; teams retained.",
+    { game: true },
+  );
 });
 
-document.querySelectorAll("[data-ban-kind]").forEach(section => {
-  section.querySelector(".ban-form").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (await saveBan(section, "add_ban", form.elements.ban.value)) form.reset();
-    form.elements.ban.focus();
-  });
+document.querySelectorAll("[data-ban-kind]").forEach((section) => {
+  section
+    .querySelector(".ban-form")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (await saveBan(section, "add_ban", form.elements.ban.value))
+        form.reset();
+      form.elements.ban.focus();
+    });
 });
 document.querySelector("#swap-sides").addEventListener("click", async () => {
   if (swapping) return;
   swapping = true;
   workspace.disabled = true;
   try {
-    const saved = await Promise.all(teamSavers.map(save => save()));
+    const saved = await Promise.all(teamSavers.map((save) => save()));
     if (saved.every(Boolean)) {
-      await send({ action: "swap_sides" }, "Team names, scores, and rosters swapped.", { teams: true, background: true });
+      await send(
+        { action: "swap_sides" },
+        "Team names, scores, and rosters swapped.",
+        { teams: true, background: true },
+      );
     } else {
       notice.className = "error";
-      notice.textContent = "Save or correct team details before swapping sides.";
+      notice.textContent =
+        "Save or correct team details before swapping sides.";
     }
   } finally {
     swapping = false;
@@ -184,7 +291,7 @@ document.querySelector("#swap-sides").addEventListener("click", async () => {
   }
 });
 
-document.querySelectorAll(".team-card").forEach(card => {
+document.querySelectorAll(".team-card").forEach((card) => {
   const team = Number(card.dataset.team);
   const form = card.querySelector(".team-form");
   const status = card.querySelector(".save-status");
@@ -209,16 +316,23 @@ document.querySelectorAll(".team-card").forEach(card => {
         else invalid = true;
       }
       if (score !== saved.Score || scoreInput.validity.badInput) {
-        if (Number.isInteger(score) && score >= 0 && score <= 999) payload.score = score;
+        if (Number.isInteger(score) && score >= 0 && score <= 999)
+          payload.score = score;
         else invalid = true;
       }
       let success = true;
       if ("name" in payload || "score" in payload) {
         status.textContent = "Saving...";
-        success = await send(payload, `Team ${team} details saved.`, { background: true });
+        success = await send(payload, `Team ${team} details saved.`, {
+          background: true,
+        });
       }
       if (revision === currentRevision) {
-        status.textContent = !success ? "Not saved. Retry when connected." : invalid ? "Not saved. Enter a name and a score from 0 to 999." : "Saved automatically.";
+        status.textContent = !success
+          ? "Not saved. Retry when connected."
+          : invalid
+            ? "Not saved. Enter a name and a score from 0 to 999."
+            : "Saved automatically.";
         status.classList.toggle("error", !success || invalid);
         retry.hidden = success;
       }
@@ -236,23 +350,56 @@ document.querySelectorAll(".team-card").forEach(card => {
     timer = setTimeout(save, 450);
   });
   form.addEventListener("change", save);
-  form.addEventListener("submit", event => {
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
     save();
   });
   retry.addEventListener("click", save);
-  card.querySelector(".player-form").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (await send({ action: "add_player", team, player: form.elements.player.value }, "Player added to roster.")) form.reset();
-    form.elements.player.focus();
-  });
+  card
+    .querySelector(".source-form")
+    .addEventListener("change", async (event) => {
+      const select = event.target;
+      const option = state.sources.find((item) => item.kind === select.value);
+      // Keep a typed name before the new source takes over the team.
+      if (!(await save())) {
+        select.value = state.teams[team - 1].Source.Kind;
+        return;
+      }
+      if (
+        !(await send(
+          { action: "set_team_source", team, source: select.value },
+          `Team ${team} source set to ${option ? option.label : select.value}.`,
+          { teams: true },
+        ))
+      ) {
+        select.value = state.teams[team - 1].Source.Kind;
+      }
+      select.focus();
+    });
+  card
+    .querySelector(".source-form")
+    .addEventListener("submit", (event) => event.preventDefault());
+  card
+    .querySelector(".player-form")
+    .addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (
+        await send(
+          { action: "add_player", team, player: form.elements.player.value },
+          "Player added to roster.",
+        )
+      )
+        form.reset();
+      form.elements.player.focus();
+    });
 });
 
 async function initialize() {
   try {
     const response = await fetch("/api/state", { cache: "no-store" });
-    if (!response.ok) throw new Error("Could not load the workspace. Refresh to try again.");
+    if (!response.ok)
+      throw new Error("Could not load the workspace. Refresh to try again.");
     state = await response.json();
     render({ teams: true, game: true });
     workspace.disabled = false;
@@ -262,7 +409,8 @@ async function initialize() {
   } catch (error) {
     notice.className = "error";
     notice.textContent = error.message;
-    document.querySelector("#connection").textContent = "Connection unavailable";
+    document.querySelector("#connection").textContent =
+      "Connection unavailable";
   }
 }
 initialize();
