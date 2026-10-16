@@ -62,8 +62,12 @@ export default function SceneView({ scene }) {
       activeRequest = new AbortController();
       const timeout = setTimeout(() => activeRequest.abort(), 3000);
       try {
-        const response = await fetch("/api/overlay", { cache: "no-store", signal: activeRequest.signal });
-        if (!response.ok) throw new Error(`Overlay receiver returned ${response.status}`);
+        const response = await fetch("/api/overlay", {
+          cache: "no-store",
+          signal: activeRequest.signal,
+        });
+        if (!response.ok)
+          throw new Error(`Overlay receiver returned ${response.status}`);
         const next = await response.json();
         if (!validOverlay(next)) throw new Error("Invalid overlay document");
         if (!stopped) setDocument(next);
@@ -75,31 +79,57 @@ export default function SceneView({ scene }) {
       }
     }
     refresh();
-    return () => { stopped = true; clearTimeout(timer); activeRequest?.abort(); };
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      activeRequest?.abort();
+    };
   }, []);
 
   const components = document?.scenes[scene] || [];
-  const backgroundComponents = components.filter(c => c.location === "Center");
-  const overlayComponents = components.filter(c => c.location !== "Center");
+  const backgroundComponents = components.filter(
+    (c) => c.location === "Center",
+  );
+  const overlayComponents = components.filter((c) => c.location !== "Center");
 
   return (
-    <main className="overlay-canvas" data-scene={scene} aria-label={`${scene} overlay`}>
+    <main
+      className="overlay-canvas"
+      data-scene={scene}
+      aria-label={`${scene} overlay`}
+    >
       {backgroundComponents.map((component, index) => (
-        <div className="overlay-background" style={{ "--element-scale": component.scale ?? 1 }} key={index}>
+        <div
+          className="overlay-background"
+          style={{ "--element-scale": component.scale ?? 1 }}
+          key={index}
+        >
           <ComponentContent component={component} />
         </div>
       ))}
 
-      {LOCATIONS.filter(location => location !== "Center").map(location => {
-        const placed = overlayComponents.filter(component => component.location === location);
-        return placed.length > 0 && (
-          <div className="overlay-slot" data-location={location} key={location}>
-            {placed.map((component, index) => (
-              <section className="overlay-scaled" style={{ "--element-scale": component.scale ?? 1 }} key={index}>
-                <ComponentContent component={component} />
-              </section>
-            ))}
-          </div>
+      {LOCATIONS.filter((location) => location !== "Center").map((location) => {
+        const placed = overlayComponents.filter(
+          (component) => component.location === location,
+        );
+        return (
+          placed.length > 0 && (
+            <div
+              className="overlay-slot"
+              data-location={location}
+              key={location}
+            >
+              {placed.map((component, index) => (
+                <section
+                  className="overlay-scaled"
+                  style={{ "--element-scale": component.scale ?? 1 }}
+                  key={index}
+                >
+                  <ComponentContent component={component} />
+                </section>
+              ))}
+            </div>
+          )
         );
       })}
     </main>

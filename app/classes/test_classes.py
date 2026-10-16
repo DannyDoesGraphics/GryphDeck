@@ -2,10 +2,10 @@
 
 import io
 import json
-from contextlib import redirect_stdout
-from pathlib import Path
 import sys
 import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
 
 if __package__:
     from .GameInfo import GameInfo
@@ -28,7 +28,13 @@ class GameInfoTests(unittest.TestCase):
             with self.subTest(game=path.stem):
                 data = json.loads(path.read_text(encoding="utf-8"))
                 game = GameInfo(path.stem)
-                for field in ("name", "element_positions", "enabled_components", "maps", "chars"):
+                for field in (
+                    "name",
+                    "element_positions",
+                    "enabled_components",
+                    "maps",
+                    "chars",
+                ):
                     self.assertEqual(getattr(game, field), data[field])
 
     def test_reload_replaces_configuration(self):
@@ -48,17 +54,27 @@ class MatchInfoTests(unittest.TestCase):
 
     def test_initial_teams(self):
         for team in (1, 2):
-            self.assertEqual(self.match.team_info(team), {
-                "Name": "", "Score": 0, "Players": [],
-            })
+            self.assertEqual(
+                self.match.team_info(team),
+                {
+                    "Name": "",
+                    "Score": 0,
+                    "Players": [],
+                },
+            )
 
     def test_update_names_and_scores(self):
         for team, name, score in ((1, "Gryphons", 3), (2, "Rivals", 1)):
             self.assertTrue(self.match.update_team_name(team, name))
             self.assertTrue(self.match.update_team_score(team, score))
-            self.assertEqual(self.match.team_info(team), {
-                "Name": name, "Score": score, "Players": [],
-            })
+            self.assertEqual(
+                self.match.team_info(team),
+                {
+                    "Name": name,
+                    "Score": score,
+                    "Players": [],
+                },
+            )
 
     def test_add_and_remove_players(self):
         self.assertTrue(self.match.add_player(1, "Player One"))
@@ -115,7 +131,8 @@ class StateManagerTests(unittest.TestCase):
                         and component["Scene"].lower() in (scene, "all")
                     ]
                     self.assertCountEqual(
-                        getattr(state, f"current_{scene}_components"), expected,
+                        getattr(state, f"current_{scene}_components"),
+                        expected,
                     )
 
     def test_enable_and_disable_in_each_scene(self):
@@ -137,7 +154,8 @@ class StateManagerTests(unittest.TestCase):
         self.state.enable_component("pregame", "Team Roster")
         self.state.enable_component("pregame", "Score Pregame")
         enabled = {
-            name for name, position, active in self.state.current_pregame_components
+            name
+            for name, position, active in self.state.current_pregame_components
             if active
         }
         self.assertEqual(enabled, {"Score Pregame", "Sponsorships Badge"})
@@ -173,9 +191,13 @@ class StateManagerTests(unittest.TestCase):
         self.assertNotIn("Test Map", other.game_info.maps)
 
     def test_post_request_includes_all_scenes_and_only_enabled_components(self):
-        self.assertEqual(json.loads(self.state.create_post_request()), {
-            "game": "Valorant", "scenes": {"idle": [], "pregame": [], "ingame": []},
-        })
+        self.assertEqual(
+            json.loads(self.state.create_post_request()),
+            {
+                "game": "Valorant",
+                "scenes": {"idle": [], "pregame": [], "ingame": []},
+            },
+        )
         self.state.enable_component("idle", "Starting Soon")
         self.state.enable_component("idle", "Sponsorships Badge")
         self.state.enable_component("pregame", "Team Roster")
@@ -183,13 +205,17 @@ class StateManagerTests(unittest.TestCase):
         self.state.enable_component("ingame", "Score Ingame")
         self.state.current_scene = "ingame"
         scenes = json.loads(self.state.create_post_request())["scenes"]
-        self.assertEqual({c["name"] for c in scenes["idle"]}, {"Starting Soon", "Sponsorships Badge"})
+        self.assertEqual(
+            {c["name"] for c in scenes["idle"]}, {"Starting Soon", "Sponsorships Badge"}
+        )
         self.assertEqual([c["name"] for c in scenes["pregame"]], ["Score Pregame"])
         self.assertEqual(scenes["ingame"][0]["location"], "BottomCenter")
         for component in scenes["idle"]:
             self.assertEqual(component["data"], {"game": "Valorant", "scene": "idle"})
         self.state.disable_component("ingame", "Score Ingame")
-        self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"], [])
+        self.assertEqual(
+            json.loads(self.state.create_post_request())["scenes"]["ingame"], []
+        )
 
     def test_post_request_includes_configured_scales_and_defaults_missing_scales(self):
         for element in self.state.game_info.element_positions:
@@ -205,11 +231,18 @@ class StateManagerTests(unittest.TestCase):
         scenes = json.loads(self.state.create_post_request())["scenes"]
         for components in scenes.values():
             for component in components:
-                expected = {"Score Ingame": 0.5, "Sponsorships Badge": 1.5}.get(component["name"], 1)
+                expected = {"Score Ingame": 0.5, "Sponsorships Badge": 1.5}.get(
+                    component["name"], 1
+                )
                 self.assertEqual(component["scale"], expected)
         self.state.load_game("Overwatch")
         self.state.enable_component("ingame", "Score Ingame")
-        self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["scale"], 1)
+        self.assertEqual(
+            json.loads(self.state.create_post_request())["scenes"]["ingame"][0][
+                "scale"
+            ],
+            1,
+        )
 
     def test_post_request_uses_live_rosters_scores_and_side_order(self):
         for team in (1, 2):
@@ -220,17 +253,27 @@ class StateManagerTests(unittest.TestCase):
         self.state.enable_component("ingame", "Score Ingame")
         original_json = self.state.create_post_request()
         scenes = json.loads(original_json)["scenes"]
-        self.assertEqual(scenes["pregame"][0]["data"]["teams"], [
-            {"name": "Team 1", "players": ["Player 1"]},
-            {"name": "Team 2", "players": ["Player 2"]},
-        ])
-        self.assertEqual(scenes["ingame"][0]["data"]["teams"], [
-            {"name": "Team 1", "score": 3}, {"name": "Team 2", "score": 6},
-        ])
+        self.assertEqual(
+            scenes["pregame"][0]["data"]["teams"],
+            [
+                {"name": "Team 1", "players": ["Player 1"]},
+                {"name": "Team 2", "players": ["Player 2"]},
+            ],
+        )
+        self.assertEqual(
+            scenes["ingame"][0]["data"]["teams"],
+            [
+                {"name": "Team 1", "score": 3},
+                {"name": "Team 2", "score": 6},
+            ],
+        )
         self.state.match_info.swap_sides()
         swapped = json.loads(self.state.create_post_request())["scenes"]
         for scene in ("pregame", "ingame"):
-            self.assertEqual(swapped[scene][0]["data"]["teams"], scenes[scene][0]["data"]["teams"][::-1])
+            self.assertEqual(
+                swapped[scene][0]["data"]["teams"],
+                scenes[scene][0]["data"]["teams"][::-1],
+            )
         self.assertEqual(json.loads(original_json)["scenes"], scenes)
 
     def test_post_request_contains_selected_maps_and_heroes_not_catalogs(self):
@@ -240,17 +283,30 @@ class StateManagerTests(unittest.TestCase):
         self.state.enable_component("pregame", "Map Picks")
         self.state.enable_component("ingame", "Character Bans Ingame")
         scenes = json.loads(self.state.create_post_request())["scenes"]
-        self.assertEqual(scenes["pregame"][0]["data"], {
-            "game": "Overwatch", "scene": "pregame", "map_picks": ["King's Row"],
-        })
+        self.assertEqual(
+            scenes["pregame"][0]["data"],
+            {
+                "game": "Overwatch",
+                "scene": "pregame",
+                "map_picks": ["King's Row"],
+            },
+        )
         self.assertEqual(scenes["ingame"][0]["data"]["hero_bans"], ["L\u00facio"])
         self.state.enable_component("pregame", "Character Bans Pregame")
         scenes = json.loads(self.state.create_post_request())["scenes"]
         self.assertEqual(scenes["pregame"][0]["data"]["hero_bans"], ["L\u00facio"])
         self.state.update_ban("hero", "L\u00facio", remove=True)
-        self.assertEqual(json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["data"]["hero_bans"], [])
+        self.assertEqual(
+            json.loads(self.state.create_post_request())["scenes"]["ingame"][0]["data"][
+                "hero_bans"
+            ],
+            [],
+        )
         self.state.load_game("Miscellaneous")
-        self.assertEqual(json.loads(self.state.create_post_request())["scenes"], {"idle": [], "pregame": [], "ingame": []})
+        self.assertEqual(
+            json.loads(self.state.create_post_request())["scenes"],
+            {"idle": [], "pregame": [], "ingame": []},
+        )
 
 
 class PrintInfoTests(unittest.TestCase):
@@ -261,7 +317,10 @@ class PrintInfoTests(unittest.TestCase):
         for instance, expected_text in (
             (state.game_info, ("Valorant", "maps", "chars", "Team Roster")),
             (state.match_info, ("Gryphons", "Player One", "Score")),
-            (state, ("Valorant", "Gryphons", "Player One", "idle", "pregame", "ingame")),
+            (
+                state,
+                ("Valorant", "Gryphons", "Player One", "idle", "pregame", "ingame"),
+            ),
         ):
             with self.subTest(class_name=type(instance).__name__):
                 output = io.StringIO()

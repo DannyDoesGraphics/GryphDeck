@@ -4,7 +4,6 @@ from urllib.request import Request, urlopen
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
-
 main = Blueprint("main", __name__, url_prefix="/api")
 control = Blueprint("control", __name__)
 GAME_DIR = Path(__file__).resolve().parent / "json"
@@ -28,8 +27,11 @@ def state_data():
         "components": {
             scene: [
                 {"name": name, "position": position, "enabled": enabled}
-                for name, position, enabled in getattr(state, f"current_{scene}_components")
-            ] for scene in SCENE_NAMES
+                for name, position, enabled in getattr(
+                    state, f"current_{scene}_components"
+                )
+            ]
+            for scene in SCENE_NAMES
         },
     }
 
@@ -53,7 +55,9 @@ def get_overlay():
     """Let the frontend recover the current document after startup or a missed POST."""
     with current_app.extensions["state_lock"]:
         document = current_app.extensions["state_manager"].create_post_request()
-    return current_app.response_class(document, mimetype="application/json", headers={"Cache-Control": "no-store"})
+    return current_app.response_class(
+        document, mimetype="application/json", headers={"Cache-Control": "no-store"}
+    )
 
 
 def publish_overlay(document):
@@ -61,18 +65,30 @@ def publish_overlay(document):
     target = current_app.config["OVERLAY_POST_URL"]
     if not target:
         return
-    outgoing = Request(target, data=document.encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+    outgoing = Request(
+        target,
+        data=document.encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
     try:
-        with urlopen(outgoing, timeout=current_app.config["OVERLAY_POST_TIMEOUT"]) as response:
+        with urlopen(
+            outgoing, timeout=current_app.config["OVERLAY_POST_TIMEOUT"]
+        ) as response:
             response.read()
     except (URLError, OSError, ValueError) as error:
-        current_app.logger.warning("Overlay delivery failed; the frontend can recover via /api/overlay: %s", error)
+        current_app.logger.warning(
+            "Overlay delivery failed; the frontend can recover via /api/overlay: %s",
+            error,
+        )
 
 
 def required_text(data, key):
     value = data.get(key)
     if not isinstance(value, str) or not value.strip() or len(value.strip()) > 80:
-        raise ValueError(f"{key.replace('_', ' ').capitalize()} must contain 1–80 characters.")
+        raise ValueError(
+            f"{key.replace('_', ' ').capitalize()} must contain 1–80 characters."
+        )
     return value.strip()
 
 
@@ -89,7 +105,9 @@ def update_state():
             if action == "load_game":
                 game = required_text(data, "game")
                 if game not in available_games():
-                    raise ValueError("Choose a game from the available JSON configurations.")
+                    raise ValueError(
+                        "Choose a game from the available JSON configurations."
+                    )
                 state.load_game(game)
             elif action == "select_scene":
                 scene_name = data.get("scene")
@@ -105,12 +123,18 @@ def update_state():
                 component = next((item for item in components if item[0] == name), None)
                 if component is None:
                     raise ValueError("Component is not available in this scene.")
-                operation = state.disable_component if component[2] else state.enable_component
+                operation = (
+                    state.disable_component if component[2] else state.enable_component
+                )
                 operation(scene_name, name)
             elif action == "swap_sides":
                 match.swap_sides()
             elif action in ("add_ban", "remove_ban"):
-                state.update_ban(data.get("kind"), required_text(data, "name"), remove=action == "remove_ban")
+                state.update_ban(
+                    data.get("kind"),
+                    required_text(data, "name"),
+                    remove=action == "remove_ban",
+                )
             elif action in ("update_team", "add_player", "remove_player"):
                 team = data.get("team")
                 if type(team) is not int or team not in (1, 2):
@@ -120,8 +144,12 @@ def update_state():
                         raise ValueError("Provide a team name or score.")
                     name = required_text(data, "name") if "name" in data else None
                     score = data.get("score")
-                    if "score" in data and (type(score) is not int or not 0 <= score <= 999):
-                        raise ValueError("Score must be a whole number between 0 and 999.")
+                    if "score" in data and (
+                        type(score) is not int or not 0 <= score <= 999
+                    ):
+                        raise ValueError(
+                            "Score must be a whole number between 0 and 999."
+                        )
                     if name is not None:
                         match.update_team_name(team, name)
                     if "score" in data:
@@ -138,11 +166,14 @@ def update_state():
             return jsonify(error=str(error)), 400
         except (OSError, KeyError, TypeError, StopIteration):
             current_app.logger.exception("Could not load game configuration")
-            return jsonify(error="Could not load that game JSON. Check its configuration."), 400
+            return jsonify(
+                error="Could not load that game JSON. Check its configuration."
+            ), 400
         scene_json = state.create_post_request()
         print(scene_json)
         publish_overlay(scene_json)
         return jsonify(state_data())
+
 
 SCENES = {
     "idle": {
@@ -176,7 +207,13 @@ SCENES = {
 def index():
     return jsonify(
         name="GryphDeck API",
-        endpoints=["/api/health", "/api/state", "/api/control", "/api/overlay", "/api/scenes/<scene>"],
+        endpoints=[
+            "/api/health",
+            "/api/state",
+            "/api/control",
+            "/api/overlay",
+            "/api/scenes/<scene>",
+        ],
     )
 
 
@@ -205,5 +242,8 @@ def scene(scene):
                 result["teams"] = [team["Name"] for team in state["teams"]]
                 result["players"] = [team["Players"] for team in state["teams"]]
             if scene.lower() == "ingame":
-                result["score"] = dict(home=state["teams"][0]["Score"], away=state["teams"][1]["Score"])
+                result["score"] = {
+                    "home": state["teams"][0]["Score"],
+                    "away": state["teams"][1]["Score"],
+                }
         return jsonify(scene=scene.lower(), **result)

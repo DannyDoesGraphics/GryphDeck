@@ -1,57 +1,60 @@
 @font-face {
-  font-family: 'Antonio';
+  font-family: "Antonio";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVxx8RtI.ttf) format('truetype');
+  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVxx8RtI.ttf) format("truetype");
 }
 @font-face {
-  font-family: 'Antonio';
+  font-family: "Antonio";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVyv9htI.ttf) format('truetype');
+  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVyv9htI.ttf) format("truetype");
 }
 @font-face {
-  font-family: 'Antonio';
+  font-family: "Antonio";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVyW9htI.ttf) format('truetype');
+  src: url(gNMbW3NwSYq_9WD34ngK5F8vR8T0PVyW9htI.ttf) format("truetype");
 }
 @font-face {
-  font-family: 'DM Sans';
+  font-family: "DM Sans";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAopxhTg.ttf) format('truetype');
+  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAopxhTg.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'DM Sans';
+  font-family: "DM Sans";
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAkJxhTg.ttf) format('truetype');
+  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAkJxhTg.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'DM Sans';
+  font-family: "DM Sans";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAfJthTg.ttf) format('truetype');
+  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAfJthTg.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'DM Sans';
+  font-family: "DM Sans";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwARZthTg.ttf) format('truetype');
+  src: url(rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwARZthTg.ttf)
+    format("truetype");
 }
 @font-face {
-  font-family: 'Russo One';
+  font-family: "Russo One";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(Z9XUDmZRWg6M1LvRYsH-yA.ttf) format('truetype');
+  src: url(Z9XUDmZRWg6M1LvRYsH-yA.ttf) format("truetype");
 }
-

@@ -1,56 +1,58 @@
 {
-    "name": "Miscellaneous",
-    "element_positions": [{
-        "Name": "Team Roster",
-        "Position": "Center",
-        "Scale": 1,
-        "Scene": "Pregame"
+  "name": "Miscellaneous",
+  "element_positions": [
+    {
+      "Name": "Team Roster",
+      "Position": "Center",
+      "Scale": 1,
+      "Scene": "Pregame"
     },
     {
-        "Name": "Score Ingame",
-        "Position": "TopCenter",
-        "Scale": 1,
-        "Scene": "Ingame"
+      "Name": "Score Ingame",
+      "Position": "TopCenter",
+      "Scale": 1,
+      "Scene": "Ingame"
     },
     {
-        "Name": "Score Pregame",
-        "Position": "Center",
-        "Scale": 1,
-        "Scene": "Pregame"
+      "Name": "Score Pregame",
+      "Position": "Center",
+      "Scale": 1,
+      "Scene": "Pregame"
     },
     {
-        "Name": "Sponsorships Badge",
-        "Position": "BottomLeft",
-        "Scale": 1,
-        "Scene": "All"
+      "Name": "Sponsorships Badge",
+      "Position": "BottomLeft",
+      "Scale": 1,
+      "Scene": "All"
     },
     {
-        "Name": "Intermission",
-        "Position": "Center",
-        "Scale": 1,
-        "Scene": "Idle"
+      "Name": "Intermission",
+      "Position": "Center",
+      "Scale": 1,
+      "Scene": "Idle"
     },
     {
-        "Name": "Tech Pause",
-        "Position": "Center",
-        "Scale": 1,
-        "Scene": "Idle"
+      "Name": "Tech Pause",
+      "Position": "Center",
+      "Scale": 1,
+      "Scene": "Idle"
     },
     {
-        "Name": "Starting Soon",
-        "Position": "Center",
-        "Scale": 1,
-        "Scene": "Idle"
-    }],
-    "enabled_components": [
-        "Team Roster",
-        "Score Ingame",
-        "Score Pregame",
-        "Sponsorships Badge",
-        "Intermission",
-        "Tech Pause",
-        "Starting Soon"
-    ],
-    "maps": [],
-    "chars": []
+      "Name": "Starting Soon",
+      "Position": "Center",
+      "Scale": 1,
+      "Scene": "Idle"
+    }
+  ],
+  "enabled_components": [
+    "Team Roster",
+    "Score Ingame",
+    "Score Pregame",
+    "Sponsorships Badge",
+    "Intermission",
+    "Tech Pause",
+    "Starting Soon"
+  ],
+  "maps": [],
+  "chars": []
 }
