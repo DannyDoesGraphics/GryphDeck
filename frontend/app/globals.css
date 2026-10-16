@@ -7,59 +7,230 @@
   --red: #e51937;
   --gold: #ffc429;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; width: 100%; min-height: 100%; background: transparent !important; }
-h1, h2, h3, p { margin: 0; }
-.overlay-canvas { position: fixed; inset: 0; background: transparent; overflow: hidden; pointer-events: none; --inset: clamp(12px, 2vw, 40px); }
-.overlay-slot { position: absolute; display: flex; flex-direction: column; gap: 12px; width: max-content; max-width: calc(100% - 2 * var(--inset)); max-height: calc(100% - 2 * var(--inset)); }
-.overlay-slot[data-location="TopLeft"] { top: var(--inset); left: var(--inset); }
-.overlay-slot[data-location="TopCenter"] { top: var(--inset); left: 50%; transform: translateX(-50%); }
-.overlay-slot[data-location="TopRight"] { top: var(--inset); right: var(--inset); }
-.overlay-slot[data-location="CenterLeft"] { top: 50%; left: var(--inset); transform: translateY(-50%); }
-.overlay-slot[data-location="Center"] { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.overlay-slot[data-location="CenterRight"] { top: 50%; right: var(--inset); transform: translateY(-50%); }
-.overlay-slot[data-location="BottomLeft"] { bottom: var(--inset); left: var(--inset); }
-.overlay-slot[data-location="BottomCenter"] { bottom: var(--inset); left: 50%; transform: translateX(-50%); }
-.overlay-slot[data-location="BottomRight"] { bottom: var(--inset); right: var(--inset); }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: transparent !important;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+.overlay-canvas {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  --inset: clamp(12px, 2vw, 40px);
+}
+.overlay-slot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--inset));
+  max-height: calc(100% - 2 * var(--inset));
+}
+.overlay-slot[data-location="TopLeft"] {
+  top: var(--inset);
+  left: var(--inset);
+}
+.overlay-slot[data-location="TopCenter"] {
+  top: var(--inset);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.overlay-slot[data-location="TopRight"] {
+  top: var(--inset);
+  right: var(--inset);
+}
+.overlay-slot[data-location="CenterLeft"] {
+  top: 50%;
+  left: var(--inset);
+  transform: translateY(-50%);
+}
+.overlay-slot[data-location="Center"] {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.overlay-slot[data-location="CenterRight"] {
+  top: 50%;
+  right: var(--inset);
+  transform: translateY(-50%);
+}
+.overlay-slot[data-location="BottomLeft"] {
+  bottom: var(--inset);
+  left: var(--inset);
+}
+.overlay-slot[data-location="BottomCenter"] {
+  bottom: var(--inset);
+  left: 50%;
+  transform: translateX(-50%);
+}
+.overlay-slot[data-location="BottomRight"] {
+  bottom: var(--inset);
+  right: var(--inset);
+}
 /* Position containers keep their full-size layout; only their content is scaled. */
 .overlay-background > :not([data-scale-layout="internal"]),
 .overlay-scaled > :not([data-scale-layout="internal"]) {
   scale: var(--element-scale, 1);
   transform-origin: var(--element-origin, center);
 }
-.overlay-slot[data-location^="Top"] { --element-origin-y: top; }
-.overlay-slot[data-location^="Bottom"] { --element-origin-y: bottom; }
-.overlay-slot[data-location="TopLeft"] { --element-origin: left top; }
-.overlay-slot[data-location="TopCenter"] { --element-origin: center top; }
-.overlay-slot[data-location="TopRight"] { --element-origin: right top; }
-.overlay-slot[data-location="CenterLeft"] { --element-origin: left center; }
-.overlay-slot[data-location="CenterRight"] { --element-origin: right center; }
-.overlay-slot[data-location="BottomLeft"] { --element-origin: left bottom; }
-.overlay-slot[data-location="BottomCenter"] { --element-origin: center bottom; }
-.overlay-slot[data-location="BottomRight"] { --element-origin: right bottom; }
-.overlay-component { width: min(520px, 100%); min-width: min(280px, calc(100vw - 48px)); padding: 18px 22px; border: 2px solid #747676; border-top-color: var(--red); border-radius: 12px; background: rgb(0 0 0 / 72%); overflow-wrap: anywhere; }
-.overlay-component h2 { font-family: "Antonio", sans-serif; font-size: clamp(18px, 1.5vw, 28px); font-weight: 600; margin-bottom: 12px; }
-.overlay-component h3 { font-size: clamp(14px, 1.2vw, 20px); color: var(--gold); margin-bottom: 10px; }
-.score-component { width: min(620px, calc(100vw - 2 * var(--inset))); }
-.score-component h2 { font-size: 16px; color: #d8d8d8; }
-.scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-.score-team { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; font-size: clamp(16px, 1.5vw, 24px); }
-.score-team strong { font-family: "Antonio", sans-serif; font-size: clamp(28px, 2.5vw, 46px); color: var(--gold); }
-.score-team + .score-team { border-left: 2px solid #747676; padding-left: 22px; }
-.roster-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
-.roster-teams ol, .selection-list { margin: 0; padding-left: 24px; line-height: 1.6; font-size: clamp(14px, 1.1vw, 20px); }
-li::marker { color: var(--gold); font-family: "Antonio", sans-serif; }
-.empty-value { color: #d8d8d8; font-size: 14px; }
-.static-label { font-size: clamp(16px, 1.3vw, 24px); }
+.overlay-slot[data-location^="Top"] {
+  --element-origin-y: top;
+}
+.overlay-slot[data-location^="Bottom"] {
+  --element-origin-y: bottom;
+}
+.overlay-slot[data-location="TopLeft"] {
+  --element-origin: left top;
+}
+.overlay-slot[data-location="TopCenter"] {
+  --element-origin: center top;
+}
+.overlay-slot[data-location="TopRight"] {
+  --element-origin: right top;
+}
+.overlay-slot[data-location="CenterLeft"] {
+  --element-origin: left center;
+}
+.overlay-slot[data-location="CenterRight"] {
+  --element-origin: right center;
+}
+.overlay-slot[data-location="BottomLeft"] {
+  --element-origin: left bottom;
+}
+.overlay-slot[data-location="BottomCenter"] {
+  --element-origin: center bottom;
+}
+.overlay-slot[data-location="BottomRight"] {
+  --element-origin: right bottom;
+}
+.overlay-component {
+  width: min(520px, 100%);
+  min-width: min(280px, calc(100vw - 48px));
+  padding: 18px 22px;
+  border: 2px solid #747676;
+  border-top-color: var(--red);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 72%);
+  overflow-wrap: anywhere;
+}
+.overlay-component h2 {
+  font-family: "Antonio", sans-serif;
+  font-size: clamp(18px, 1.5vw, 28px);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.overlay-component h3 {
+  font-size: clamp(14px, 1.2vw, 20px);
+  color: var(--gold);
+  margin-bottom: 10px;
+}
+.score-component {
+  width: min(620px, calc(100vw - 2 * var(--inset)));
+}
+.score-component h2 {
+  font-size: 16px;
+  color: #d8d8d8;
+}
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.score-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+  font-size: clamp(16px, 1.5vw, 24px);
+}
+.score-team strong {
+  font-family: "Antonio", sans-serif;
+  font-size: clamp(28px, 2.5vw, 46px);
+  color: var(--gold);
+}
+.score-team + .score-team {
+  border-left: 2px solid #747676;
+  padding-left: 22px;
+}
+.roster-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+.roster-teams ol,
+.selection-list {
+  margin: 0;
+  padding-left: 24px;
+  line-height: 1.6;
+  font-size: clamp(14px, 1.1vw, 20px);
+}
+li::marker {
+  color: var(--gold);
+  font-family: "Antonio", sans-serif;
+}
+.empty-value {
+  color: #d8d8d8;
+  font-size: 14px;
+}
+.static-label {
+  font-size: clamp(16px, 1.3vw, 24px);
+}
 /* Only the launcher is a regular page. OBS scene canvases remain transparent. */
-.launcher { min-height: 100vh; background: #000; padding: 40px; display: grid; place-items: center; }
-.launcher-card { max-width: 760px; border: 2px solid #747676; border-radius: 14px; padding: 32px; }
-.launcher h1 { font-family: "Russo One", sans-serif; font-size: 28px; margin-bottom: 18px; }
-.launcher p { line-height: 1.7; }
-.launcher nav { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
-.launcher a { color: var(--gold); }
-.launcher nav a { border: 2px solid #747676; border-radius: 8px; padding: 12px 18px; text-decoration: none; }
-.launcher a:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+.launcher {
+  min-height: 100vh;
+  background: #000;
+  padding: 40px;
+  display: grid;
+  place-items: center;
+}
+.launcher-card {
+  max-width: 760px;
+  border: 2px solid #747676;
+  border-radius: 14px;
+  padding: 32px;
+}
+.launcher h1 {
+  font-family: "Russo One", sans-serif;
+  font-size: 28px;
+  margin-bottom: 18px;
+}
+.launcher p {
+  line-height: 1.7;
+}
+.launcher nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+.launcher a {
+  color: var(--gold);
+}
+.launcher nav a {
+  border: 2px solid #747676;
+  border-radius: 8px;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+.launcher a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
 .overlay-background {
   position: absolute;
   inset: 0;

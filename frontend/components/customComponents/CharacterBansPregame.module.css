@@ -1,76 +1,76 @@
 .frame {
-    position: relative;
-    width: min(100vw, calc(100vh * 16 / 9));
-    aspect-ratio: 16 / 9;
-    container-type: inline-size;
-    font-family: "DM Sans", sans-serif;
-    overflow: hidden;
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
+  font-family: "DM Sans", sans-serif;
+  overflow: hidden;
 }
 
 .background {
-    display: block;
-    width: 100%;
-    height: 100%;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .bans {
-    position: absolute;
-    left: 18.8%;
-    right: 18.8%;
-    top: 20.2%;
-    bottom: 40%;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
+  position: absolute;
+  left: 18.8%;
+  right: 18.8%;
+  top: 20.2%;
+  bottom: 40%;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .ban {
-    display: grid;
-    grid-template-rows: 18.5% minmax(0, 1fr);
-    min-width: 0;
-    min-height: 0;
+  display: grid;
+  grid-template-rows: 18.5% minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
 }
 
 .name {
-    container-type: size;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    min-height: 0;
-    padding: 0 4%;
-    color: #000;
-    text-align: center;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 4%;
+  color: #000;
+  text-align: center;
 }
 
 .name span {
-    max-width: 100%;
-    font-weight: 700;
-    line-height: 1.05;
-    overflow-wrap: anywhere;
+  max-width: 100%;
+  font-weight: 700;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .portraitArea {
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .portrait {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center bottom;
-    margin-top: 10%
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  margin-top: 10%;
 }
 
 .empty {
-    position: absolute;
-    inset: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 18.5%;
-    color: #000;
-    font-size: clamp(10px, 1.5vw, 28px);
+  position: absolute;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18.5%;
+  color: #000;
+  font-size: clamp(10px, 1.5vw, 28px);
 }

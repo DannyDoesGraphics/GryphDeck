@@ -1,111 +1,133 @@
 .frame {
-    position: relative;
-    width: min(1920px, calc(100vw - 2 * var(--inset, 0px)));
-    aspect-ratio: 3840 / 238;
-    container-type: inline-size;
-    font-family: "DM Sans", sans-serif;
+  position: relative;
+  width: min(1920px, calc(100vw - 2 * var(--inset, 0px)));
+  aspect-ratio: 3840 / 238;
+  container-type: inline-size;
+  font-family: "DM Sans", sans-serif;
 }
 
 .panel {
-    position: absolute;
-    top: 0;
-    width: 27.25%;
-    height: 100%;
-    overflow: hidden;
-    scale: var(--element-scale, 1);
+  position: absolute;
+  top: 0;
+  width: 27.25%;
+  height: 100%;
+  overflow: hidden;
+  scale: var(--element-scale, 1);
 }
 
 .leftPanel {
-    left: 0;
-    transform-origin: left var(--element-origin-y, center);
+  left: 0;
+  transform-origin: left var(--element-origin-y, center);
 }
 
 .rightPanel {
-    right: 0;
-    transform-origin: right var(--element-origin-y, center);
+  right: 0;
+  transform-origin: right var(--element-origin-y, center);
 }
 
 .background {
-    position: absolute;
-    top: 0;
-    display: block;
-    /* Crop each outer 27.25% from the original artwork without resizing its panels. */
-    width: calc(100% / 0.2725);
-    max-width: none;
-    height: 100%;
+  position: absolute;
+  top: 0;
+  display: block;
+  /* Crop each outer 27.25% from the original artwork without resizing its panels. */
+  width: calc(100% / 0.2725);
+  max-width: none;
+  height: 100%;
 }
 
-.leftPanel .background { left: 0; }
-.rightPanel .background { right: 0; }
+.leftPanel .background {
+  left: 0;
+}
+.rightPanel .background {
+  right: 0;
+}
 
 .content {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    grid-template-columns: 21fr 6.25fr;
-    grid-template-rows: minmax(0, 1fr);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 21fr 6.25fr;
+  grid-template-rows: minmax(0, 1fr);
 }
 
-.rightPanel .content { grid-template-columns: 6.25fr 21fr; }
+.rightPanel .content {
+  grid-template-columns: 6.25fr 21fr;
+}
 
 .team {
-    grid-row: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.4cqw;
-    min-width: 0;
-    min-height: 0;
-    padding: 0.45cqw 0.7cqw;
-    overflow: hidden;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4cqw;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.45cqw 0.7cqw;
+  overflow: hidden;
 }
 
-.leftTeam { grid-column: 1; color: #fff; }
-.rightTeam { grid-column: 2; color: #000; }
-.leftName { text-align: left; }
-.rightName { text-align: right; }
+.leftTeam {
+  grid-column: 1;
+  color: #fff;
+}
+.rightTeam {
+  grid-column: 2;
+  color: #000;
+}
+.leftName {
+  text-align: left;
+}
+.rightName {
+  text-align: right;
+}
 
 .logo {
-    display: block;
-    width: 28%;
-    height: 100%;
-    flex-shrink: 0;
-    object-fit: contain;
+  display: block;
+  width: 28%;
+  height: 100%;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .fitBox {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    height: 100%;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .text {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    font-size: 1px;
-    font-weight: 700;
-    line-height: 1.05;
-    white-space: normal;
-    overflow-wrap: anywhere;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  font-size: 1px;
+  font-weight: 700;
+  line-height: 1.05;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .score {
-    grid-row: 1;
-    padding: 0.45cqw;
-    font-family: "Antonio", sans-serif;
-    font-variant-numeric: tabular-nums;
-    text-align: center;
+  grid-row: 1;
+  padding: 0.45cqw;
+  font-family: "Antonio", sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .score .text {
-    white-space: nowrap;
-    overflow-wrap: normal;
-    /* Center Antonio's visible numerals within the already-centered line box. */
-    transform: translateY(-0.085em);
+  white-space: nowrap;
+  overflow-wrap: normal;
+  /* Center Antonio's visible numerals within the already-centered line box. */
+  transform: translateY(-0.085em);
 }
-.leftScore { grid-column: 2; color: #000; }
-.rightScore { grid-column: 1; color: #fff; }
+.leftScore {
+  grid-column: 2;
+  color: #000;
+}
+.rightScore {
+  grid-column: 1;
+  color: #fff;
+}

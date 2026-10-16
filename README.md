@@ -49,6 +49,27 @@ Run the control API and class tests together:
 .\Scripts\python.exe -m unittest app.test_routes app.classes.test_classes -v
 ```
 
+## Linting
+
+CI fails on any formatting or lint issue, so run both of these before pushing.
+
+Format and lint the Python code with [Ruff](https://docs.astral.sh/ruff/):
+
+```powershell
+.\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\Scripts\python.exe -m ruff format .
+.\Scripts\python.exe -m ruff check .
+```
+
+Also format and lint the frontend (and `app/json`) with
+[Prettier](https://prettier.io/) and [ESLint](https://eslint.org/):
+
+```powershell
+cd frontend
+npm run format
+npm run lint
+```
+
 ## Scene JSON
 
 `StateManager.create_post_request()` returns a JSON string with `game` and

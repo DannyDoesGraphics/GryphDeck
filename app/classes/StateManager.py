@@ -7,8 +7,8 @@ else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
 
-class StateManager:
 
+class StateManager:
     def __init__(self, game_name="Valorant"):
         self.game_info = GameInfo(game_name)
         self.game_key = game_name
@@ -17,9 +17,9 @@ class StateManager:
         self.match_info = MatchInfo()
         self.bans = {"map": [], "hero": []}
 
-        self.current_idle_components = [] # (component_name, position, enabled)
-        self.current_pregame_components = [] # (component_name, position, enabled)
-        self.current_ingame_components = [] # (component_name, position, enabled)
+        self.current_idle_components = []  # (component_name, position, enabled)
+        self.current_pregame_components = []  # (component_name, position, enabled)
+        self.current_ingame_components = []  # (component_name, position, enabled)
 
         self.load_components(self.game_info)
 
@@ -41,7 +41,14 @@ class StateManager:
         selected_word = "picked" if kind == "map" else "banned"
         if not options[kind]["supported"]:
             raise ValueError(f"This game does not have {kind} {selection}.")
-        canonical = next((choice for choice in options[kind]["choices"] if choice.casefold() == name.casefold()), None)
+        canonical = next(
+            (
+                choice
+                for choice in options[kind]["choices"]
+                if choice.casefold() == name.casefold()
+            ),
+            None,
+        )
         if canonical is None:
             raise ValueError(f"Choose a {kind} from the current game's list.")
         selected = self.bans[kind]
@@ -66,13 +73,14 @@ class StateManager:
 
         for component_name in game_info.enabled_components:
             component = next(
-                elem for elem in game_info.element_positions
-                if elem['Name'] == component_name
+                elem
+                for elem in game_info.element_positions
+                if elem["Name"] == component_name
             )
-            scene = component['Scene'].lower()
+            scene = component["Scene"].lower()
             for scene_name, components in scene_components.items():
                 if scene == "all" or scene == scene_name:
-                    components.append([component_name, component['Position'], False])
+                    components.append([component_name, component["Position"], False])
 
     def enable_component(self, scene, component_name):
         # Find the component list
@@ -90,7 +98,11 @@ class StateManager:
             if component[0] == component_name:
                 component[2] = True
                 for other_component in component_list:
-                    if other_component[1] == component[1] and other_component[0] != component_name and other_component[2] == True:
+                    if (
+                        other_component[1] == component[1]
+                        and other_component[0] != component_name
+                        and other_component[2] == True
+                    ):
                         other_component[2] = False
                 break
 
@@ -137,7 +149,10 @@ class StateManager:
         and scene context; dynamic overlays also receive their current values.
         This builds the request body; the caller handles its transport.
         """
-        scales = {element["Name"]: element.get("Scale", 1) for element in self.game_info.element_positions}
+        scales = {
+            element["Name"]: element.get("Scale", 1)
+            for element in self.game_info.element_positions
+        }
         scenes = {}
         for scene in ("idle", "pregame", "ingame"):
             scenes[scene] = []
@@ -148,38 +163,59 @@ class StateManager:
                 component = name.casefold()
                 if component == "team roster":
                     data["teams"] = [
-                        {"name": self.match_info.team_info(team)["Name"],
-                         "players": self.match_info.team_info(team)["Players"]}
+                        {
+                            "name": self.match_info.team_info(team)["Name"],
+                            "players": self.match_info.team_info(team)["Players"],
+                        }
                         for team in (1, 2)
                     ]
                 elif component.startswith("score "):
                     data["teams"] = [
-                        {"name": self.match_info.team_info(team)["Name"],
-                         "score": self.match_info.team_info(team)["Score"]}
+                        {
+                            "name": self.match_info.team_info(team)["Name"],
+                            "score": self.match_info.team_info(team)["Score"],
+                        }
                         for team in (1, 2)
                     ]
                 elif "map" in component and "pick" in component:
                     data["map_picks"] = self.bans["map"]
-                elif ("character" in component or "hero" in component) and "ban" in component:
+                elif (
+                    "character" in component or "hero" in component
+                ) and "ban" in component:
                     data["hero_bans"] = self.bans["hero"]
-                scenes[scene].append({"name": name, "location": location, "scale": scales.get(name, 1), "data": data})
-        return json.dumps({"game": self.game_info.name, "scenes": scenes}, ensure_ascii=False, indent=2)
+                scenes[scene].append(
+                    {
+                        "name": name,
+                        "location": location,
+                        "scale": scales.get(name, 1),
+                        "data": data,
+                    }
+                )
+        return json.dumps(
+            {"game": self.game_info.name, "scenes": scenes},
+            ensure_ascii=False,
+            indent=2,
+        )
 
     def __str__(self):
-        return json.dumps({
-            "game": self.game_info.name,
-            "team_1": self.match_info.team_info(1),
-            "team_2": self.match_info.team_info(2),
-            "components (name, position, enabled)": {
-                "idle": self.current_idle_components,
-                "pregame": self.current_pregame_components,
-                "ingame": self.current_ingame_components,
+        return json.dumps(
+            {
+                "game": self.game_info.name,
+                "team_1": self.match_info.team_info(1),
+                "team_2": self.match_info.team_info(2),
+                "components (name, position, enabled)": {
+                    "idle": self.current_idle_components,
+                    "pregame": self.current_pregame_components,
+                    "ingame": self.current_ingame_components,
+                },
             },
-        }, indent=2)
+            indent=2,
+        )
 
     def print_info(self):
         """Print the game, match, and component state for every scene."""
         print(self)
+
 
 # Scene
 # Components
@@ -188,10 +224,10 @@ class StateManager:
 # Screen (Score Pregame, Starting Soon, Tech Pauce, etc.)
 # Components (Sponsorship Badge, Chartacter Bans Ingame, etc)
 
-#/idle
-#/pregame
-#/ingame
+# /idle
+# /pregame
+# /ingame
 
-#backend - all the configuration (including UI)
+# backend - all the configuration (including UI)
 
-#frontend - all rendering
+# frontend - all rendering
