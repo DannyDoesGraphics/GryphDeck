@@ -340,6 +340,13 @@ class ControlTests(unittest.TestCase):
             {"action": "update_team", "team": 2, "name": "Changed", "score": 1},
             {"action": "add_player", "team": 2, "player": "Extra"},
             {"action": "remove_player", "team": 2, "player": "Remote"},
+            {
+                "action": "move_player",
+                "team": 2,
+                "player": "Remote",
+                "from": 0,
+                "to": 0,
+            },
         ):
             with self.subTest(payload=payload):
                 response = self.client.post("/api/control", json=payload)
@@ -361,6 +368,25 @@ class ControlTests(unittest.TestCase):
             },
         )
         self.action("add_player", team=2, player="Extra")
+
+    def test_move_player_reorders_the_roster(self):
+        for name in ("A", "B", "C"):
+            self.action("add_player", team=1, player=name)
+        state = self.action("move_player", team=1, player="C", **{"from": 2, "to": 0})
+        self.assertEqual(state["teams"][0]["Players"], ["C", "A", "B"])
+        for payload in (
+            {"player": "A", "from": 0, "to": 1},
+            {"player": "C", "from": 0, "to": 5},
+            {"player": "C", "from": "0", "to": 1},
+        ):
+            with self.subTest(payload=payload):
+                response = self.client.post(
+                    "/api/control",
+                    json={"action": "move_player", "team": 1, **payload},
+                )
+                self.assertEqual(response.status_code, 400)
+        players = self.client.get("/api/state").get_json()["teams"][0]["Players"]
+        self.assertEqual(players, ["C", "A", "B"])
 
     def test_failed_load_retains_current_game(self):
         before = self.client.get("/api/state").get_json()

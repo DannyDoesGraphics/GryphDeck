@@ -150,6 +150,7 @@ def update_state():
                 "update_team",
                 "add_player",
                 "remove_player",
+                "move_player",
                 "set_team_source",
             ):
                 team = data.get("team")
@@ -181,6 +182,14 @@ def update_state():
                     player = required_text(data, "player")
                     if action == "add_player":
                         match.add_player(team, player)
+                    elif action == "move_player":
+                        start, end = data.get("from"), data.get("to")
+                        if type(start) is not int or type(end) is not int:
+                            raise ValueError("Positions must be whole numbers.")
+                        if not match.move_player(team, start, end, player):
+                            raise ValueError(
+                                "The roster changed. Drag the player again."
+                            )
                     elif not match.remove_player(team, player):
                         raise ValueError("Player is no longer on this team.")
             else:

@@ -79,6 +79,21 @@ class MatchInfo:
 
         return False
 
+    def move_player(self, teamNum, fromIndex, toIndex, playerName):
+        """Move the player at fromIndex to toIndex. playerName must still be at
+        fromIndex, so a drag made against an outdated roster changes nothing."""
+        if not self.editable(teamNum):
+            return False
+
+        players = self.sources[teamNum - 1].players
+        if not (0 <= fromIndex < len(players) and 0 <= toIndex < len(players)):
+            return False
+        if players[fromIndex] != playerName:
+            return False
+
+        players.insert(toIndex, players.pop(fromIndex))
+        return True
+
     def swap_sides(self):
         self.sources[0], self.sources[1] = self.sources[1], self.sources[0]
         self.scores[0], self.scores[1] = self.scores[1], self.scores[0]

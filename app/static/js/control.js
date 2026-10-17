@@ -104,6 +104,24 @@ function render({ teams = false, game = false } = {}) {
           );
           card.querySelector('[name="player"]').focus();
         });
+        row.dataset.index = String(playerIndex);
+        if (editable) {
+          // Drag the row, or focus the handle and use the arrow keys.
+          row.draggable = true;
+          const handle = element("button", "drag-handle", "⠿");
+          handle.type = "button";
+          handle.setAttribute(
+            "aria-label",
+            `Move ${player}. Drag, or press the up and down arrow keys.`,
+          );
+          handle.addEventListener("keydown", (event) => {
+            const step = { ArrowUp: -1, ArrowDown: 1 }[event.key];
+            if (!step) return;
+            event.preventDefault();
+            movePlayer(index + 1, playerIndex, playerIndex + step, player);
+          });
+          row.append(handle);
+        }
         row.append(
           element(
             "span",
@@ -120,6 +138,33 @@ function render({ teams = false, game = false } = {}) {
       roster.append(element("li", "empty-roster", "No players added."));
   });
   renderBans({ game });
+}
+
+async function movePlayer(team, from, to, player) {
+  const players = state.teams[team - 1].Players;
+  if (to < 0 || to >= players.length || to === from) return;
+  await send(
+    { action: "move_player", team, player, from, to },
+    `${player} moved to position ${to + 1}.`,
+  );
+  // Keep the handle focused so the arrow keys can keep moving the player.
+  document
+    .querySelector(
+      `[data-team="${team}"] .players [data-index="${to}"] .drag-handle`,
+    )
+    ?.focus();
+}
+
+// Where a dragged row would land: the number of other rows above the pointer.
+function dropPosition(roster, draggedRow, clientY) {
+  const rows = [...roster.querySelectorAll(".player")].filter(
+    (row) => row !== draggedRow,
+  );
+  const below = rows.find((row) => {
+    const box = row.getBoundingClientRect();
+    return clientY < box.top + box.height / 2;
+  });
+  return { rows, below, position: below ? rows.indexOf(below) : rows.length };
 }
 
 function renderSource(card, source) {
@@ -379,6 +424,45 @@ document.querySelectorAll(".team-card").forEach((card) => {
   card
     .querySelector(".source-form")
     .addEventListener("submit", (event) => event.preventDefault());
+  const roster = card.querySelector(".players");
+  let dragged = null;
+  const clearDropMarks = () =>
+    roster
+      .querySelectorAll(".drop-before, .drop-after")
+      .forEach((row) => row.classList.remove("drop-before", "drop-after"));
+  roster.addEventListener("dragstart", (event) => {
+    const row = event.target.closest(".player[draggable='true']");
+    if (!row) return;
+    dragged = { index: Number(row.dataset.index), row };
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", row.dataset.index);
+    // Mark it after the browser has captured the drag image.
+    requestAnimationFrame(() => row.classList.add("dragging"));
+  });
+  roster.addEventListener("dragover", (event) => {
+    if (!dragged) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    const { rows, below } = dropPosition(roster, dragged.row, event.clientY);
+    clearDropMarks();
+    if (below) below.classList.add("drop-before");
+    else rows.at(-1)?.classList.add("drop-after");
+  });
+  roster.addEventListener("dragleave", (event) => {
+    if (!roster.contains(event.relatedTarget)) clearDropMarks();
+  });
+  roster.addEventListener("drop", (event) => {
+    if (!dragged) return;
+    event.preventDefault();
+    const { position } = dropPosition(roster, dragged.row, event.clientY);
+    const player = state.teams[team - 1].Players[dragged.index];
+    movePlayer(team, dragged.index, position, player);
+  });
+  roster.addEventListener("dragend", () => {
+    dragged?.row.classList.remove("dragging");
+    dragged = null;
+    clearDropMarks();
+  });
   card
     .querySelector(".player-form")
     .addEventListener("submit", async (event) => {

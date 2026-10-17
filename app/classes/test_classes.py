@@ -144,6 +144,23 @@ class MatchInfoTests(unittest.TestCase):
         self.assertEqual(self.match.team_info(1)["Players"], ["Player Two"])
         self.assertEqual(self.match.team_info(2)["Players"], ["Opponent"])
 
+    def test_move_player_reorders_the_roster(self):
+        for name in ("A", "B", "C", "D"):
+            self.match.add_player(1, name)
+        self.assertTrue(self.match.move_player(1, 0, 2, "A"))
+        self.assertEqual(self.match.team_info(1)["Players"], ["B", "C", "A", "D"])
+        self.assertTrue(self.match.move_player(1, 3, 0, "D"))
+        self.assertEqual(self.match.team_info(1)["Players"], ["D", "B", "C", "A"])
+
+    def test_move_player_rejects_outdated_or_invalid_moves(self):
+        for name in ("A", "B", "C"):
+            self.match.add_player(1, name)
+        self.assertFalse(self.match.move_player(1, 0, 2, "B"))
+        self.assertFalse(self.match.move_player(1, 0, 3, "A"))
+        self.assertFalse(self.match.move_player(1, -1, 0, "C"))
+        self.assertFalse(self.match.move_player(2, 0, 0, "A"))
+        self.assertEqual(self.match.team_info(1)["Players"], ["A", "B", "C"])
+
     def test_invalid_team_numbers_leave_match_unchanged(self):
         before = str(self.match)
         for team in (-1, 0, 3):
