@@ -63,6 +63,20 @@ class SquadSource(TeamSource):
         return {"name": "Squad", "players": regulars + subs, "extra": {}}
 
 
+class CountingSquadSource(SquadSource):
+    """A Squad that counts fetches and can change roster."""
+
+    def __init__(self):
+        super().__init__()
+        self.fetches = 0
+        self.roster = None
+
+    def fetch(self):
+        self.fetches += 1
+        team = super().fetch()
+        return {**team, "players": self.roster or team["players"]}
+
+
 class ValorantSource(TeamSource):
     """A source that only works while Valorant is loaded."""
 
@@ -201,7 +215,22 @@ class MatchInfoTests(unittest.TestCase):
         self.assertFalse(self.match.add_player(1, "Stranger"))
         self.assertEqual(self.match.team_info(1)["Players"], ["R1", "S2", "R3", "S1"])
         source.fetch = lambda: {"name": "Squad", "players": ["R1", "R3"], "extra": {}}
+        self.match.refresh_source(1)
         self.assertEqual(self.match.team_info(1)["Players"], ["R1", "R3"])
+
+    def test_sources_fetch_once_then_only_on_refresh(self):
+        source = self.match.sources[0] = CountingSquadSource()
+        self.match.remove_player(1, "R1")
+        self.match.team_info(1)
+        self.assertEqual(source.fetches, 1)
+        source.roster = ["R1", "R2", "New"]
+        self.assertEqual(self.match.team_info(1)["Bench"], ["R1"])
+        self.assertEqual(source.fetches, 1)
+        self.assertTrue(self.match.refresh_source(1))
+        self.assertEqual(source.fetches, 2)
+        self.assertEqual(self.match.team_info(1)["Players"], ["R2"])
+        self.assertEqual(self.match.team_info(1)["Bench"], ["R1", "New"])
+        self.assertFalse(self.match.refresh_source(3))
 
     def test_switching_to_manual_keeps_the_lineup_and_swaps_follow_sides(self):
         self.match.sources[0] = SquadSource()
@@ -327,12 +356,17 @@ class TeamSourceTests(unittest.TestCase):
 
         self.assertEqual(match.team_info(2), fetched(None))
         source.failure = RuntimeError("feed down")
-        with self.assertLogs(source_log, "ERROR"):
-            self.assertEqual(match.team_info(2), fetched("RuntimeError: feed down"))
+        with (
+            self.assertLogs(source_log, "ERROR"),
+            self.assertRaisesRegex(ValueError, "feed down"),
+        ):
+            match.refresh_source(2)
+        self.assertEqual(match.team_info(2), fetched("RuntimeError: feed down"))
         match.set_source(2, "manual")
         self.assertEqual(match.sources[1].fetch(), LockedSource().fetch())
         match.sources[1] = source
         source.failure = None
+        match.refresh_source(2)
         self.assertEqual(match.team_info(2), fetched(None))
 
     def test_load_sources_skips_files_that_fail_to_import(self):

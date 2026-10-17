@@ -54,7 +54,7 @@
                 <div class="team-heading"><h3 id="team-heading-{{ team }}"><span class="team-dot" aria-hidden="true"></span>{{ 'Left' if team == 1 else 'Right' }} team</h3><span class="side-label">0{{ team }}</span></div>
                 <form class="source-form">
                   <label for="team-source-{{ team }}">Source</label>
-                  <select id="team-source-{{ team }}" name="source" aria-describedby="team-source-note-{{ team }}"></select>
+                  <div class="source-row"><select id="team-source-{{ team }}" name="source" aria-describedby="team-source-note-{{ team }}"></select><button class="refresh-source secondary" type="button" aria-label="Refresh team {{ team }} from its source" title="Pull newer data (at most every 5 minutes)" hidden>⟳</button></div>
                   <p class="source-note hint" id="team-source-note-{{ team }}"></p>
                 </form>
                 <form class="team-form">

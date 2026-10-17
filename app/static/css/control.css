@@ -160,6 +160,9 @@ footer > span:first-child { font-family: "Antonio", sans-serif; letter-spacing: 
 .ban-feedback { margin-top: 8px; }
 .ban-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
 .source-form { display: grid; grid-template-columns: minmax(0, 1fr); margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.source-row { display: flex; gap: 8px; }
+.source-row select { flex: 1; min-width: 0; }
+.refresh-source { padding: 0 12px; font-size: 1.1rem; }
 .source-note { margin-top: 6px; }
 .team-card[data-locked="true"] .source-note { color: var(--accent-gold); }
 .team-card .source-note.error { color: var(--accent-red); }

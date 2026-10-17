@@ -30,12 +30,28 @@ class TeamSource(ABC):
         self.error = None
         """Last error to prevent log spam"""
 
+        self.fetched = False
+        """Whether fetch() has been tried"""
+
     @abstractmethod
     def fetch(self) -> dict[str, Any]:
         """Return {"name": str, "players": [str], "extra": dict}."""
 
+    def current(self):
+        """The last fetched team, fetched the first time it is needed"""
+        if not self.fetched:
+            self.try_fetch()
+        return self.team
+
+    def refresh(self):
+        """fetch() again on request"""
+        self.try_fetch()
+        if self.error:
+            raise ValueError(self.error)
+
     def try_fetch(self):
         """fetch(), applied only if it succeeds"""
+        self.fetched = True
         try:
             self.team = self.fetch()
             self.error = None

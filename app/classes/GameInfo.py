@@ -10,7 +10,8 @@ class GameInfo:
 
         self.maps = []
         self.chars = []
-        self.team_size = None  # If a source is selected, we can cap the expected number of players
+        # If a source is selected, we can cap the expected number of players
+        self.team_size = None
 
         self.load_game_info(self.name)
 

@@ -336,7 +336,11 @@ class ControlTests(unittest.TestCase):
         self.client.get("/api/state")
         source.failure = RuntimeError("feed down")
         with self.assertLogs(source_log, "ERROR"):
-            response = self.client.get("/api/state")
+            response = self.client.post(
+                "/api/control", json={"action": "refresh_team_source", "team": 2}
+            )
+        self.assertEqual(response.get_json(), {"error": "RuntimeError: feed down"})
+        response = self.client.get("/api/state")
         self.assertEqual(response.status_code, 200)
         team = response.get_json()["teams"][1]
         self.assertEqual(
@@ -408,6 +412,21 @@ class ControlTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400)
         players = self.client.get("/api/state").get_json()["teams"][0]["Players"]
         self.assertEqual(players, ["C", "A", "B"])
+
+    def test_refresh_team_source_reports_why_it_cannot(self):
+        source = self.manager.match_info.sources[1] = SquadSource()
+
+        def cooling_down():
+            raise ValueError("Try again in 5 min.")
+
+        source.refresh = cooling_down
+        response = self.client.post(
+            "/api/control", json={"action": "refresh_team_source", "team": 2}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json(), {"error": "Try again in 5 min."})
+        source.refresh = lambda: None
+        self.action("refresh_team_source", team=2)
 
     def test_sourced_lineup_subs_bench_and_reorders(self):
         self.manager.match_info.sources[1] = SquadSource()

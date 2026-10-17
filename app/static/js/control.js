@@ -78,7 +78,7 @@ function render({ teams = false, game = false } = {}) {
     if (teams || !editable)
       card.querySelector('[name="name"]').value = team.Name;
     if (teams) card.querySelector('[name="score"]').value = team.Score;
-    renderSource(card, team.Source);
+    renderSource(card, team.Source, team.Extra);
     card.querySelector('[name="name"]').disabled = !editable;
     // Manual teams type their roster; sourced teams pick a lineup from the bench.
     card.querySelector(".player-form").hidden = !editable;
@@ -235,7 +235,14 @@ function renderBench(card, team, editable) {
   select.disabled = !team.Bench.length;
 }
 
-function renderSource(card, source) {
+function pulledAt(extra) {
+  return new Date(extra.pulled * 1000).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function renderSource(card, source, extra) {
   const select = card.querySelector('[name="source"]');
   if (select.options.length !== state.sources.length) {
     select.replaceChildren(
@@ -244,12 +251,14 @@ function renderSource(card, source) {
   }
   select.value = source.Kind;
   const option = state.sources.find((item) => item.kind === source.Kind);
+  card.querySelector(".refresh-source").hidden = source.Kind === "manual";
   const note = card.querySelector(".source-note");
   note.textContent = source.Error
     ? `${source.Label} failed: ${source.Error}. Keeping the team as it was.`
     : option
       ? option.description
       : `Name and roster come from ${source.Label}.`;
+  if (extra.pulled) note.textContent += ` Last pulled ${pulledAt(extra)}.`;
   note.classList.toggle("error", Boolean(source.Error));
   card.dataset.locked = String(source.Kind !== "manual");
 }
@@ -492,6 +501,18 @@ document.querySelectorAll(".team-card").forEach((card) => {
   card
     .querySelector(".source-form")
     .addEventListener("submit", (event) => event.preventDefault());
+  card.querySelector(".refresh-source").addEventListener("click", async () => {
+    const before = state.teams[team - 1].Extra.pulled;
+    const refreshed = await send(
+      { action: "refresh_team_source", team },
+      `Team ${team} refreshed from ${state.teams[team - 1].Source.Label}.`,
+      { teams: true },
+    );
+    const extra = state.teams[team - 1].Extra;
+    if (refreshed && before && extra.pulled === before)
+      notice.textContent = `Team ${team} is up to date: pulled at ${pulledAt(extra)}, under 5 minutes ago.`;
+    card.querySelector(".refresh-source").focus();
+  });
   const bench = card.querySelector(".bench-form");
   bench.addEventListener("submit", (event) => event.preventDefault());
   bench.elements.bench.addEventListener("change", async (event) => {

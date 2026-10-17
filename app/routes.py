@@ -153,6 +153,7 @@ def update_state():
                 "move_player",
                 "substitute_player",
                 "set_team_source",
+                "refresh_team_source",
             ):
                 team = data.get("team")
                 if type(team) is not int or team not in (1, 2):
@@ -160,6 +161,8 @@ def update_state():
                 locked = not match.editable(team)
                 if action == "set_team_source":
                     match.set_source(team, data.get("source"))
+                elif action == "refresh_team_source":
+                    match.refresh_source(team)
                 elif action == "update_team":
                     if locked and "name" in data:
                         raise ValueError("This team's name comes from its source.")

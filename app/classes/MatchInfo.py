@@ -30,7 +30,7 @@ class MatchInfo:
             return None
 
         source = self.sources[teamNum - 1]
-        team = source.try_fetch()
+        team = source.current()
         roster = roster_entries(team["players"])
         lineup = self.lineup(teamNum, roster)
         return {
@@ -90,6 +90,13 @@ class MatchInfo:
             replacement = SOURCES[kind]()
         self.sources[teamNum - 1] = replacement
         self.lineups[teamNum - 1] = None
+        return True
+
+    def refresh_source(self, teamNum):
+        """Ask a team's source for newer data. The chosen lineup is kept."""
+        if teamNum > 2 or teamNum < 1:
+            return False
+        self.sources[teamNum - 1].refresh()
         return True
 
     def update_team_name(self, teamNum, name):

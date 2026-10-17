@@ -19,6 +19,10 @@ class ManualSource(TeamSource):
         self.players = list(players)
         self.extra = copy.deepcopy(extra) if extra else {}
 
+    def current(self):
+        """Typed edits show immediately."""
+        return self.fetch()
+
     def fetch(self):
         return {
             "name": self.name,
