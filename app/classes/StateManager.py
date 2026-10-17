@@ -16,7 +16,7 @@ class StateManager:
         self.game_key = game_name
         self.current_scene = "idle"
 
-        self.match_info = MatchInfo()
+        self.match_info = MatchInfo(self.game_info.team_size)
         self.bans = {"map": [], "hero": []}
 
         self.current_idle_components = []  # (component_name, position, enabled)
@@ -37,6 +37,7 @@ class StateManager:
         self.current_pregame_components = replacement.current_pregame_components
         self.current_ingame_components = replacement.current_ingame_components
         self.bans = replacement.bans
+        self.match_info.team_size = self.game_info.team_size
         for team, source in enumerate(self.match_info.sources, start=1):
             if not supports(source, self.game_key):
                 self.match_info.set_source(team, "manual")

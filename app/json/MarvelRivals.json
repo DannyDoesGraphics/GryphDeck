@@ -1,5 +1,6 @@
 {
   "name": "Marvel Rivals",
+  "team_size": 6,
   "element_positions": [
     {
       "Name": "Team Roster",

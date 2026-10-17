@@ -151,6 +151,7 @@ def update_state():
                 "add_player",
                 "remove_player",
                 "move_player",
+                "substitute_player",
                 "set_team_source",
             ):
                 team = data.get("team")
@@ -177,11 +178,20 @@ def update_state():
                     if "score" in data:
                         match.update_team_score(team, score)
                 else:
-                    if locked:
-                        raise ValueError("This team's roster comes from its source.")
                     player = required_text(data, "player")
                     if action == "add_player":
-                        match.add_player(team, player)
+                        if not match.add_player(team, player):
+                            raise ValueError(f"{player} is not on this team's bench.")
+                    elif action == "substitute_player":
+                        if not locked:
+                            raise ValueError("Manual teams have no bench.")
+                        index = data.get("index")
+                        if type(index) is not int:
+                            raise ValueError("Position must be a whole number.")
+                        if not match.substitute_player(
+                            team, index, player, required_text(data, "substitute")
+                        ):
+                            raise ValueError("The lineup changed. Pick the sub again.")
                     elif action == "move_player":
                         start, end = data.get("from"), data.get("to")
                         if type(start) is not int or type(end) is not int:

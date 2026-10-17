@@ -8,7 +8,13 @@ from urllib.error import URLError
 from app import create_app
 from app.classes.TeamSource import SOURCES
 from app.classes.TeamSource import logger as source_log
-from app.classes.test_classes import MANUAL, FlakySource, LockedSource, ValorantSource
+from app.classes.test_classes import (
+    MANUAL,
+    FlakySource,
+    LockedSource,
+    SquadSource,
+    ValorantSource,
+)
 
 
 class ControlTests(unittest.TestCase):
@@ -105,6 +111,8 @@ class ControlTests(unittest.TestCase):
                         "Name": "Gryphons",
                         "Score": 5,
                         "Players": ["Captain"],
+                        "Roster": [{"Name": "Captain", "Sub": False}],
+                        "Bench": [],
                         "Source": MANUAL,
                         "Extra": {},
                     },
@@ -121,7 +129,15 @@ class ControlTests(unittest.TestCase):
         state = self.action("update_team", team=1, score=3)
         self.assertEqual(
             state["teams"][0],
-            {"Name": "", "Score": 3, "Players": [], "Source": MANUAL, "Extra": {}},
+            {
+                "Name": "",
+                "Score": 3,
+                "Players": [],
+                "Roster": [],
+                "Bench": [],
+                "Source": MANUAL,
+                "Extra": {},
+            },
         )
         state = self.action("update_team", team=1, name="Gryphons")
         self.assertEqual(
@@ -130,6 +146,8 @@ class ControlTests(unittest.TestCase):
                 "Name": "Gryphons",
                 "Score": 3,
                 "Players": [],
+                "Roster": [],
+                "Bench": [],
                 "Source": MANUAL,
                 "Extra": {},
             },
@@ -306,6 +324,8 @@ class ControlTests(unittest.TestCase):
                 "Name": "Valorant Team",
                 "Score": 0,
                 "Players": ["Agent"],
+                "Roster": [{"Name": "Agent", "Sub": False}],
+                "Bench": [],
                 "Source": MANUAL,
                 "Extra": {},
             },
@@ -338,21 +358,20 @@ class ControlTests(unittest.TestCase):
         for payload in (
             {"action": "update_team", "team": 2, "name": "Changed"},
             {"action": "update_team", "team": 2, "name": "Changed", "score": 1},
-            {"action": "add_player", "team": 2, "player": "Extra"},
-            {"action": "remove_player", "team": 2, "player": "Remote"},
-            {
-                "action": "move_player",
-                "team": 2,
-                "player": "Remote",
-                "from": 0,
-                "to": 0,
-            },
         ):
             with self.subTest(payload=payload):
                 response = self.client.post("/api/control", json=payload)
                 self.assertEqual(response.status_code, 400)
                 self.assertIn("source", response.get_json()["error"])
                 self.assertEqual(self.client.get("/api/state").get_json(), before)
+        # Only bench players can join a sourced lineup.
+        response = self.client.post(
+            "/api/control",
+            json={"action": "add_player", "team": 2, "player": "Extra"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("bench", response.get_json()["error"])
+        self.assertEqual(self.client.get("/api/state").get_json(), before)
         self.assertEqual(
             self.action("update_team", team=2, score=4)["teams"][1]["Score"], 4
         )
@@ -363,6 +382,8 @@ class ControlTests(unittest.TestCase):
                 "Name": "Fetched",
                 "Score": 4,
                 "Players": ["Remote"],
+                "Roster": [{"Name": "Remote", "Sub": False}],
+                "Bench": [],
                 "Source": MANUAL,
                 "Extra": {"wins": 4},
             },
@@ -387,6 +408,59 @@ class ControlTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 400)
         players = self.client.get("/api/state").get_json()["teams"][0]["Players"]
         self.assertEqual(players, ["C", "A", "B"])
+
+    def test_sourced_lineup_subs_bench_and_reorders(self):
+        self.manager.match_info.sources[1] = SquadSource()
+        team = self.client.get("/api/state").get_json()["teams"][1]
+        # Valorant fields five: the regulars first, then the first sub.
+        self.assertEqual(team["Players"], ["R1", "R2", "R3", "R4", "S1"])
+        self.assertEqual(team["Bench"], ["S2"])
+        self.assertEqual(
+            team["Roster"][4:],
+            [{"Name": "S1", "Sub": True}, {"Name": "S2", "Sub": True}],
+        )
+        team = self.action(
+            "substitute_player", team=2, index=0, player="R1", substitute="S2"
+        )["teams"][1]
+        self.assertEqual(team["Players"], ["S2", "R2", "R3", "R4", "S1"])
+        self.assertEqual(team["Bench"], ["R1"])
+        team = self.action("remove_player", team=2, player="S1")["teams"][1]
+        self.assertEqual(team["Bench"], ["R1", "S1"])
+        team = self.action("add_player", team=2, player="R1")["teams"][1]
+        team = self.action("move_player", team=2, player="R1", **{"from": 4, "to": 0})[
+            "teams"
+        ][1]
+        self.assertEqual(team["Players"], ["R1", "S2", "R2", "R3", "R4"])
+        for payload in (
+            {"index": 0, "player": "R1", "substitute": "R2"},
+            {"index": 1, "player": "R1", "substitute": "S1"},
+            {"index": "0", "player": "R1", "substitute": "S1"},
+        ):
+            with self.subTest(payload=payload):
+                response = self.client.post(
+                    "/api/control",
+                    json={"action": "substitute_player", "team": 2, **payload},
+                )
+                self.assertEqual(response.status_code, 400)
+        response = self.client.post(
+            "/api/control",
+            json={
+                "action": "substitute_player",
+                "team": 1,
+                "index": 0,
+                "player": "A",
+                "substitute": "B",
+            },
+        )
+        self.assertIn("no bench", response.get_json()["error"])
+        self.action("toggle_component", scene="pregame", component="Team Roster")
+        overlay = json.loads(self.manager.create_post_request())["scenes"]
+        roster = next(
+            item for item in overlay["pregame"] if item["name"] == "Team Roster"
+        )
+        self.assertEqual(
+            roster["data"]["teams"][1]["players"], ["R1", "S2", "R2", "R3", "R4"]
+        )
 
     def test_failed_load_retains_current_game(self):
         before = self.client.get("/api/state").get_json()

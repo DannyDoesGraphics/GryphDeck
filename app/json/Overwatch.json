@@ -1,5 +1,6 @@
 {
   "name": "Overwatch",
+  "team_size": 5,
   "element_positions": [
     {
       "Name": "Team Roster",

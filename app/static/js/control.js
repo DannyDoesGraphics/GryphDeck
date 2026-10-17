@@ -80,62 +80,108 @@ function render({ teams = false, game = false } = {}) {
     if (teams) card.querySelector('[name="score"]').value = team.Score;
     renderSource(card, team.Source);
     card.querySelector('[name="name"]').disabled = !editable;
-    card
-      .querySelectorAll(".player-form input, .player-form button")
-      .forEach((control) => {
-        control.disabled = !editable;
-      });
-    card.querySelector(".player-count").textContent =
-      `${team.Players.length} player${team.Players.length === 1 ? "" : "s"}`;
+    // Manual teams type their roster; sourced teams pick a lineup from the bench.
+    card.querySelector(".player-form").hidden = !editable;
+    renderBench(card, team, editable);
+    const subs = new Set(
+      team.Roster.filter((entry) => entry.Sub).map((entry) => entry.Name),
+    );
+    const label = (name) => (subs.has(name) ? `${name} (sub)` : name);
+    card.querySelector(".player-count").textContent = editable
+      ? `${team.Players.length} player${team.Players.length === 1 ? "" : "s"}`
+      : `${team.Players.length} shown · ${team.Bench.length} on bench`;
     const roster = card.querySelector(".players");
     roster.replaceChildren(
       ...team.Players.map((player, playerIndex) => {
         const row = element("li", "player");
-        const remove = element("button", "remove-player", "Remove");
+        const remove = element(
+          "button",
+          "remove-player",
+          editable ? "Remove" : "Bench",
+        );
         remove.type = "button";
         remove.setAttribute(
           "aria-label",
-          `Remove ${player} from team ${index + 1}`,
+          editable
+            ? `Remove ${player} from team ${index + 1}`
+            : `Move ${player} to the bench`,
         );
         remove.addEventListener("click", async () => {
           await send(
             { action: "remove_player", team: index + 1, player },
-            "Player removed.",
+            editable ? "Player removed." : `${player} moved to the bench.`,
           );
-          card.querySelector('[name="player"]').focus();
+          card
+            .querySelector(editable ? '[name="player"]' : '[name="bench"]')
+            .focus();
         });
         row.dataset.index = String(playerIndex);
-        if (editable) {
-          // Drag the row, or focus the handle and use the arrow keys.
-          row.draggable = true;
-          const handle = element("button", "drag-handle", "⠿");
-          handle.type = "button";
-          handle.setAttribute(
-            "aria-label",
-            `Move ${player}. Drag, or press the up and down arrow keys.`,
-          );
-          handle.addEventListener("keydown", (event) => {
-            const step = { ArrowUp: -1, ArrowDown: 1 }[event.key];
-            if (!step) return;
-            event.preventDefault();
-            movePlayer(index + 1, playerIndex, playerIndex + step, player);
-          });
-          row.append(handle);
-        }
-        row.append(
-          element(
-            "span",
-            "player-index",
-            String(playerIndex + 1).padStart(2, "0"),
-          ),
-          element("span", "player-name", player),
+        // Drag the row, or focus the handle and use the arrow keys.
+        row.draggable = true;
+        const handle = element("button", "drag-handle", "⠿");
+        handle.type = "button";
+        handle.setAttribute(
+          "aria-label",
+          `Move ${player}. Drag, or press the up and down arrow keys.`,
         );
-        if (editable) row.append(remove);
+        handle.addEventListener("keydown", (event) => {
+          const step = { ArrowUp: -1, ArrowDown: 1 }[event.key];
+          if (!step) return;
+          event.preventDefault();
+          movePlayer(index + 1, playerIndex, playerIndex + step, player);
+        });
+        const position = element(
+          "span",
+          "player-index",
+          String(playerIndex + 1).padStart(2, "0"),
+        );
+        if (editable) {
+          row.append(
+            handle,
+            position,
+            element("span", "player-name", player),
+            remove,
+          );
+          return row;
+        }
+        // Swap a bench player into this slot.
+        const slot = element("select", "lineup-player");
+        slot.setAttribute("aria-label", `Player ${playerIndex + 1}`);
+        slot.append(
+          new Option(label(player), player, true, true),
+          ...team.Bench.map((name) => new Option(label(name), name)),
+        );
+        slot.disabled = !team.Bench.length;
+        slot.addEventListener("change", async () => {
+          const substitute = slot.value;
+          await send(
+            {
+              action: "substitute_player",
+              team: index + 1,
+              index: playerIndex,
+              player,
+              substitute,
+            },
+            `${substitute} subbed in for ${player}.`,
+          );
+          document
+            .querySelector(
+              `[data-team="${index + 1}"] .players [data-index="${playerIndex}"] .lineup-player`,
+            )
+            ?.focus();
+        });
+        row.append(handle, position, slot, remove);
         return row;
       }),
     );
     if (!team.Players.length)
-      roster.append(element("li", "empty-roster", "No players added."));
+      roster.append(
+        element(
+          "li",
+          "empty-roster",
+          editable ? "No players added." : "No players in the lineup.",
+        ),
+      );
   });
   renderBans({ game });
 }
@@ -165,6 +211,28 @@ function dropPosition(roster, draggedRow, clientY) {
     return clientY < box.top + box.height / 2;
   });
   return { rows, below, position: below ? rows.indexOf(below) : rows.length };
+}
+
+function renderBench(card, team, editable) {
+  const form = card.querySelector(".bench-form");
+  form.hidden = editable;
+  if (editable) return;
+  const select = form.elements.bench;
+  const subs = new Set(
+    team.Roster.filter((entry) => entry.Sub).map((entry) => entry.Name),
+  );
+  select.replaceChildren(
+    new Option(
+      team.Bench.length ? "+ Add from bench" : "Bench is empty",
+      "",
+      true,
+      true,
+    ),
+    ...team.Bench.map(
+      (name) => new Option(subs.has(name) ? `${name} (sub)` : name, name),
+    ),
+  );
+  select.disabled = !team.Bench.length;
 }
 
 function renderSource(card, source) {
@@ -424,6 +492,17 @@ document.querySelectorAll(".team-card").forEach((card) => {
   card
     .querySelector(".source-form")
     .addEventListener("submit", (event) => event.preventDefault());
+  const bench = card.querySelector(".bench-form");
+  bench.addEventListener("submit", (event) => event.preventDefault());
+  bench.elements.bench.addEventListener("change", async (event) => {
+    const player = event.target.value;
+    if (!player) return;
+    await send(
+      { action: "add_player", team, player },
+      `${player} added to the lineup.`,
+    );
+    card.querySelector('[name="bench"]').focus();
+  });
   const roster = card.querySelector(".players");
   let dragged = null;
   const clearDropMarks = () =>

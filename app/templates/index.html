@@ -64,6 +64,7 @@
                 <div class="roster-heading"><h3>Player roster</h3><span class="player-count">0 players</span></div>
                 <ul class="players" aria-label="Team {{ team }} players"></ul>
                 <form class="player-form"><label class="sr-only" for="player-{{ team }}">New player for team {{ team }}</label><div class="input-row"><input id="player-{{ team }}" name="player" placeholder="Player name" maxlength="80" required><button class="secondary" type="submit">+ Add player</button></div></form>
+                <form class="bench-form" hidden><label class="sr-only" for="bench-{{ team }}">Add a bench player to team {{ team }}</label><select id="bench-{{ team }}" name="bench"></select></form>
               </article>
               {% endfor %}
             </div>

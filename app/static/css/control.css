@@ -107,6 +107,8 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .player.drop-after { box-shadow: inset 0 -2px 0 var(--accent-gold); }
 .drag-handle { border: 0; background: none; color: var(--light-gray); padding: 4px 2px; font-size: .9rem; line-height: 1; cursor: grab; }
 .drag-handle:hover { color: var(--accent-gold); }
+.lineup-player { flex: 1; min-width: 0; font-size: .85rem; padding: 6px 8px; }
+.bench-form select { width: 100%; font-size: .8rem; }
 .remove-player { border-radius: 6px; border: 0; background: var(--surface-inset); color: var(--light-gray); padding: 8px; font-size: .75rem; }
 .remove-player:hover { color: var(--light-gray); background: var(--accent-red); }
 .empty-roster { color: var(--light-gray); padding: 12px; border: 2px dashed var(--border); border-radius: 8px; font-size: .8rem; }

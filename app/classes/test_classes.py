@@ -51,6 +51,18 @@ class LockedSource(TeamSource):
         return {"name": "Fetched", "players": ["Remote"], "extra": {"wins": 4}}
 
 
+class SquadSource(TeamSource):
+    """A sourced team with four regulars and two subs."""
+
+    kind = "squad"
+    label = "Squad"
+
+    def fetch(self):
+        regulars = ["R1", "R2", "R3", "R4"]
+        subs = [{"name": "S1", "sub": True}, {"name": "S2", "sub": True}]
+        return {"name": "Squad", "players": regulars + subs, "extra": {}}
+
+
 class ValorantSource(TeamSource):
     """A source that only works while Valorant is loaded."""
 
@@ -115,6 +127,8 @@ class MatchInfoTests(unittest.TestCase):
                     "Name": "",
                     "Score": 0,
                     "Players": [],
+                    "Roster": [],
+                    "Bench": [],
                     "Source": MANUAL,
                     "Extra": {},
                 },
@@ -130,6 +144,8 @@ class MatchInfoTests(unittest.TestCase):
                     "Name": name,
                     "Score": score,
                     "Players": [],
+                    "Roster": [],
+                    "Bench": [],
                     "Source": MANUAL,
                     "Extra": {},
                 },
@@ -160,6 +176,42 @@ class MatchInfoTests(unittest.TestCase):
         self.assertFalse(self.match.move_player(1, -1, 0, "C"))
         self.assertFalse(self.match.move_player(2, 0, 0, "A"))
         self.assertEqual(self.match.team_info(1)["Players"], ["A", "B", "C"])
+
+    def test_sourced_lineup_defaults_to_regulars_then_subs_up_to_team_size(self):
+        self.match.sources[0] = SquadSource()
+        self.assertEqual(
+            self.match.team_info(1)["Players"], ["R1", "R2", "R3", "R4", "S1", "S2"]
+        )
+        self.match.team_size = 3
+        team = self.match.team_info(1)
+        self.assertEqual(team["Players"], ["R1", "R2", "R3"])
+        self.assertEqual(team["Bench"], ["R4", "S1", "S2"])
+
+    def test_sourced_lineup_edits_and_follows_the_source(self):
+        source = SquadSource()
+        self.match.sources[0] = source
+        self.match.team_size = 4
+        self.assertFalse(self.match.remove_player(1, "S2"))
+        self.assertIsNone(self.match.lineups[0])  # a failed edit keeps the default
+        self.assertTrue(self.match.substitute_player(1, 1, "R2", "S2"))
+        self.assertFalse(self.match.substitute_player(1, 0, "R2", "S1"))
+        self.assertFalse(self.match.substitute_player(1, 0, "R1", "R3"))
+        self.assertTrue(self.match.remove_player(1, "R4"))
+        self.assertTrue(self.match.add_player(1, "S1"))
+        self.assertFalse(self.match.add_player(1, "Stranger"))
+        self.assertEqual(self.match.team_info(1)["Players"], ["R1", "S2", "R3", "S1"])
+        source.fetch = lambda: {"name": "Squad", "players": ["R1", "R3"], "extra": {}}
+        self.assertEqual(self.match.team_info(1)["Players"], ["R1", "R3"])
+
+    def test_switching_to_manual_keeps_the_lineup_and_swaps_follow_sides(self):
+        self.match.sources[0] = SquadSource()
+        self.match.team_size = 2
+        self.match.remove_player(1, "R1")
+        self.match.swap_sides()
+        self.assertEqual(self.match.team_info(2)["Players"], ["R2"])
+        self.match.set_source(2, "manual")
+        self.assertEqual(self.match.team_info(2)["Players"], ["R2"])
+        self.assertEqual(self.match.lineups, [None, None])
 
     def test_invalid_team_numbers_leave_match_unchanged(self):
         before = str(self.match)
@@ -203,7 +255,6 @@ class MatchInfoTests(unittest.TestCase):
         self.assertFalse(self.match.editable(1))
         self.assertFalse(self.match.update_team_name(1, "Changed"))
         self.assertFalse(self.match.add_player(1, "Extra"))
-        self.assertFalse(self.match.remove_player(1, "Remote"))
         self.assertEqual(self.match.team_info(1), before)
         self.assertTrue(self.match.update_team_score(1, 2))
         self.assertEqual(self.match.team_info(1)["Score"], 2)
@@ -214,6 +265,8 @@ class MatchInfoTests(unittest.TestCase):
                 "Name": "Fetched",
                 "Score": 2,
                 "Players": ["Remote"],
+                "Roster": [{"Name": "Remote", "Sub": False}],
+                "Bench": [],
                 "Source": MANUAL,
                 "Extra": {"wins": 4},
             },
@@ -262,6 +315,8 @@ class TeamSourceTests(unittest.TestCase):
                 "Name": "Fetched",
                 "Score": 0,
                 "Players": ["Remote"],
+                "Roster": [{"Name": "Remote", "Sub": False}],
+                "Bench": [],
                 "Extra": {"wins": 4},
                 "Source": {
                     "Kind": "flaky",
