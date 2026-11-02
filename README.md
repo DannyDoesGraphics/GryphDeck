@@ -58,7 +58,8 @@ leave the current teams unchanged.
   allows editing team names and player composition of rosters.
 - **CSV** sources are read from `app/teams/*.csv`. Each file needs `Team` and
   `Player` columns. Any other column, such as `Tracker` or `Statlocker`, becomes
-  player metadata in `/api/state`. See `app/teams/Example.csv`.
+  player metadata in `/api/state`. See `app/teams/Example.csv` and the
+  [CSV source guide](docs/csv_source/README.md).
 
 The page modifies one `StateManager` per Flask app instance, shared by clients.
 State is held in memory and resets when the server restarts; use one server

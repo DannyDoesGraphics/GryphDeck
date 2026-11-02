@@ -2,7 +2,7 @@
 
 This is a guide meant for tornament organizers or people making/using CSVs for team sources.
 
-If you're using skip to the [Installation guide]. If you're making skip to the [Setup guide]
+If you're using skip to the [Installation guide](#installation-guide). If you're making skip to the [Setup guide](#setup-guide)
 
 ## Setup guide
 Source names are determined by a CSV file's name which can support spaces, however, should generally only stick to regular ASCII characters. Here is an example of the **most minimal** CSV file to supply a source for team rosters:
@@ -25,8 +25,8 @@ Ravens,Onyx,
 
 Team names and the first line are **capitalization and space sensitive**:
 
-`teAm,plaYer` :cross:
-`Team,Player` :checkmark:
+- `teAm,plaYer` ❌
+- `Team,Player` ✅
 
 Otherwise, your CSV file will fail to be parsed properly. As well, `grYpHons` **not equal to** `Gryphons`.
 
