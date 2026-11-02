@@ -1,5 +1,6 @@
 {
   "name": "Valorant",
+  "max_players": 5,
   "element_positions": [
     {
       "Name": "Team Roster",

@@ -1,5 +1,6 @@
 {
   "name": "Deadlock",
+  "max_players": 6,
   "element_positions": [
     {
       "Name": "Team Roster",

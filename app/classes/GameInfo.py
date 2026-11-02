@@ -5,6 +5,7 @@ from pathlib import Path
 class GameInfo:
     def __init__(self, name):
         self.name = name
+        self.max_players = 0
         self.element_positions = []
         self.enabled_components = []
 
@@ -20,6 +21,7 @@ class GameInfo:
         with config_path.open(mode="r", encoding="utf-8") as json_file:
             data = json.load(json_file)
             self.name = data["name"]
+            self.max_players = data["max_players"]
             self.element_positions = data["element_positions"]
             self.enabled_components = data["enabled_components"]
             self.maps = data["maps"]
@@ -29,6 +31,7 @@ class GameInfo:
         return json.dumps(
             {
                 "name": self.name,
+                "max_players": self.max_players,
                 "element_positions": self.element_positions,
                 "enabled_components": self.enabled_components,
                 "maps": self.maps,

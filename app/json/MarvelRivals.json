@@ -1,5 +1,6 @@
 {
   "name": "Marvel Rivals",
+  "max_players": 6,
   "element_positions": [
     {
       "Name": "Team Roster",
