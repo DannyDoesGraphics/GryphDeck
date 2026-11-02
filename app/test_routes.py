@@ -38,24 +38,34 @@ class ControlTests(unittest.TestCase):
         team_dir.start()
         self.addCleanup(team_dir.stop)
 
-    def test_csv_source_loads_teams_that_stay_editable(self):
+    def test_csv_source_locks_names_and_rosters_until_manual(self):
         self.use_team_csv("Team,Player,Tracker\nGryphons,Talon,t\nGryphons,Plume,\n")
         state = self.action("select_team_source", source="League")
         self.assertEqual(state["team_sources"], ["League", "Manual"])
         self.assertEqual(state["team_source"]["teams"], ["Gryphons"])
         self.action("load_source_team", team=1, name="Gryphons")
         self.action("set_player_active", team=1, player="Talon", active=False)
-        self.action("update_team", team=1, name="Gryphons Academy")
-        loaded = self.action("add_player", team=1, player="Extra")
-        self.assertEqual(
-            loaded["teams"][0],
-            {"Name": "Gryphons Academy", "Score": 0, "Players": ["Plume", "Extra"]},
-        )
+        loaded = self.action("update_team", team=1, score=2)
         self.assertEqual(
             loaded["rosters"][0][0], {"name": "Talon", "metadata": {"Tracker": "t"}}
         )
+        for payload in (
+            {"action": "update_team", "team": 1, "name": "Renamed"},
+            {"action": "add_player", "team": 1, "player": "Extra"},
+            {"action": "remove_player", "team": 1, "player": "Plume"},
+        ):
+            with self.subTest(payload=payload):
+                response = self.client.post("/api/control", json=payload)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("Manual", response.get_json()["error"])
         state = self.action("select_team_source", source="Manual")
         self.assertEqual(state["teams"], loaded["teams"])
+        self.action("update_team", team=1, name="Gryphons Academy")
+        state = self.action("add_player", team=1, player="Extra")
+        self.assertEqual(
+            state["teams"][0],
+            {"Name": "Gryphons Academy", "Score": 2, "Players": ["Plume", "Extra"]},
+        )
 
     def test_failing_source_keeps_teams_and_reports_the_error(self):
         self.use_team_csv("Team,Player\nGryphons,Talon\n")

@@ -54,7 +54,8 @@ Either method may raise. The app always calls them through `fetch_teams()` and
 `fetch_roster()`, which log the failure, show it under the source picker, and
 leave the current teams unchanged.
 
-- **Manual** is the default and supplies no teams.
+- **Manual** is the default and supplies no teams. It is the only source that
+  allows editing team names and player composition of rosters.
 - **CSV** sources are read from `app/teams/*.csv`. Each file needs `Team` and
   `Player` columns. Any other column, such as `Tracker` or `Statlocker`, becomes
   player metadata in `/api/state`. See `app/teams/Example.csv`.

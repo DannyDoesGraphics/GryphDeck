@@ -59,6 +59,9 @@ function render({ teams = false, game = false } = {}) {
       card.querySelector('[name="name"]').value = team.Name;
       card.querySelector('[name="score"]').value = team.Score;
     }
+    const manual = state.team_source.name === "Manual";
+    card.querySelector('[name="name"]').disabled = !manual;
+    card.querySelector(".player-form").hidden = !manual;
     const sourceTeamForm = card.querySelector(".source-team-form");
     sourceTeamForm.hidden = !state.team_source.teams.length;
     const sourceTeam = sourceTeamForm.elements.team;
@@ -89,6 +92,7 @@ function render({ teams = false, game = false } = {}) {
         await send({ action: "remove_player", team: index + 1, player }, "Player removed.");
         card.querySelector('[name="player"]').focus();
       });
+      remove.hidden = !manual;
       row.append(element("span", "player-index", String(playerIndex + 1).padStart(2, "0")), element("span", "player-name", player), toggle, remove);
       return row;
     }));

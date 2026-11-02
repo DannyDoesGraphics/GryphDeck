@@ -164,6 +164,13 @@ def update_state():
                 team = data.get("team")
                 if type(team) is not int or team not in (1, 2):
                     raise ValueError("Team must be 1 or 2.")
+                if state.team_source.name != "Manual" and (
+                    action in ("add_player", "remove_player")
+                    or (action == "update_team" and "name" in data)
+                ):
+                    raise ValueError(
+                        "Switch the team source to Manual to edit names and rosters."
+                    )
                 if action == "update_team":
                     if "name" not in data and "score" not in data:
                         raise ValueError("Provide a team name or score.")
