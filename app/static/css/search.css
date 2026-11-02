@@ -1,0 +1,5 @@
+.search { position: relative; flex: 1; min-width: 0; }
+.search-results { position: absolute; z-index: 1; top: calc(100% + 4px); left: 0; right: 0; max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface-inset); border: 2px solid var(--border); border-radius: 8px; }
+.search-result, .search-empty { padding: 8px 10px; border-radius: 6px; font-size: .8rem; }
+.search-result { cursor: pointer; }
+.search-result:hover, .search-result[aria-selected=true] { background: var(--surface-hover); color: var(--accent-gold); }

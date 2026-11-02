@@ -49,10 +49,22 @@ class StateManager:
         self.team_source = load_team_source(name)
 
     def load_source_team(self, teamNum, team_name):
-        roster = self.team_source.fetch_roster(team_name)
+        canonical = next(
+            (
+                team
+                for team in self.team_source.fetch_teams()
+                if team.casefold() == team_name.casefold()
+            ),
+            None,
+        )
+        if canonical is None:
+            raise ValueError(
+                self.team_source.error or "Choose a team from the current team source."
+            )
+        roster = self.team_source.fetch_roster(canonical)
         if roster is None:
             raise ValueError(self.team_source.error)
-        self.match_info.load_team(teamNum, team_name, roster)
+        self.match_info.load_team(teamNum, canonical, roster)
 
     def update_ban(self, kind, name, *, remove=False):
         options = self.game_info.ban_options()

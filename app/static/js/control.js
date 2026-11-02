@@ -64,9 +64,6 @@ function render({ teams = false, game = false } = {}) {
     card.querySelector(".player-form").hidden = !manual;
     const sourceTeamForm = card.querySelector(".source-team-form");
     sourceTeamForm.hidden = !state.team_source.teams.length;
-    const sourceTeam = sourceTeamForm.elements.team;
-    sourceTeam.replaceChildren(...state.team_source.teams.map(name => new Option(name, name)));
-    if (state.team_source.teams.includes(team.Name)) sourceTeam.value = team.Name;
 
     const players = state.rosters[index];
     card.querySelector(".player-count").textContent = `${team.Players.length}/${state.max_players} active, ${players.length} on roster`;
@@ -118,11 +115,6 @@ function renderBans({ game }) {
       feedback.textContent = options.choices.length ? `Type to search the game's ${kind === "map" ? "maps" : "heroes"}.` : `No ${kind === "map" ? "maps" : "heroes"} configured for this game.`;
     }
     section.querySelector(".ban-count").textContent = `${selected.length} ${selection}${selected.length === 1 ? "" : "s"}`;
-    const suggestions = section.querySelector("datalist");
-    const available = options.choices.filter(name => !selected.includes(name));
-    if (JSON.stringify([...suggestions.options].map(option => option.value)) !== JSON.stringify(available)) {
-      suggestions.replaceChildren(...available.map(name => new Option(name, name)));
-    }
     const list = section.querySelector(".ban-list");
     list.replaceChildren(...selected.map((name, index) => {
       const row = element("li", "player");
@@ -195,6 +187,8 @@ document.querySelector("#team-source").addEventListener("change", async event =>
 });
 
 document.querySelectorAll("[data-ban-kind]").forEach(section => {
+  const kind = section.dataset.banKind;
+  searchable(section.querySelector('[name="ban"]'), () => state.ban_options[kind].choices.filter(name => !state.bans[kind].includes(name)));
   section.querySelector(".ban-form").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -283,9 +277,11 @@ document.querySelectorAll(".team-card").forEach(card => {
     if (await send({ action: "add_player", team, player: form.elements.player.value }, "Player added to roster.")) form.reset();
     form.elements.player.focus();
   });
-  card.querySelector(".source-team-form").addEventListener("submit", event => {
+  searchable(card.querySelector('.source-team-form [name="team"]'), () => state.team_source.teams);
+  card.querySelector(".source-team-form").addEventListener("submit", async event => {
     event.preventDefault();
-    send({ action: "load_source_team", team, name: event.currentTarget.elements.team.value }, `Team ${team} loaded from source.`, { teams: true });
+    const form = event.currentTarget;
+    if (await send({ action: "load_source_team", team, name: form.elements.team.value }, `Team ${team} loaded from source.`, { teams: true })) form.reset();
   });
 });
 

@@ -43,7 +43,8 @@ class ControlTests(unittest.TestCase):
         state = self.action("select_team_source", source="League")
         self.assertEqual(state["team_sources"], ["League", "Manual"])
         self.assertEqual(state["team_source"]["teams"], ["Gryphons"])
-        self.action("load_source_team", team=1, name="Gryphons")
+        state = self.action("load_source_team", team=1, name="gryphons")
+        self.assertEqual(state["teams"][0]["Name"], "Gryphons")
         self.action("set_player_active", team=1, player="Talon", active=False)
         loaded = self.action("update_team", team=1, score=2)
         self.assertEqual(
@@ -83,7 +84,14 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(state["teams"], before["teams"])
 
     def test_dashboard_and_default_game(self):
-        for path in ("/", "/UI", "/static/css/control.css", "/static/js/control.js"):
+        for path in (
+            "/",
+            "/UI",
+            "/static/css/control.css",
+            "/static/css/search.css",
+            "/static/js/control.js",
+            "/static/js/search.js",
+        ):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
             response.close()
