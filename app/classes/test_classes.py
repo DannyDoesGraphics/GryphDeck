@@ -3,6 +3,7 @@
 import io
 import json
 import sys
+import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -11,10 +12,14 @@ if __package__:
     from .GameInfo import GameInfo
     from .MatchInfo import MatchInfo
     from .StateManager import StateManager
+    from .team_sources.CsvTeamSource import CsvTeamSource
+    from .team_sources.TeamSource import TeamSource, logger
 else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
     from StateManager import StateManager
+    from team_sources.CsvTeamSource import CsvTeamSource
+    from team_sources.TeamSource import TeamSource, logger
 
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "json"
@@ -30,6 +35,7 @@ class GameInfoTests(unittest.TestCase):
                 game = GameInfo(path.stem)
                 for field in (
                     "name",
+                    "max_players",
                     "element_positions",
                     "enabled_components",
                     "maps",
@@ -110,9 +116,107 @@ class MatchInfoTests(unittest.TestCase):
         self.assertEqual(self.match.team_info(2), before[1])
 
 
+class MatchRosterTests(unittest.TestCase):
+    def setUp(self):
+        self.match = MatchInfo()
+        self.match.load_team(1, "Gryphons", {"Talon": {"Tracker": "t"}, "Plume": {}})
+
+    def test_loading_a_team_activates_everyone_and_keeps_score(self):
+        self.match.update_team_score(2, 4)
+        self.match.load_team(2, "Ravens", {"Corvid": {}})
+        self.match.swap_sides()
+        self.assertEqual(
+            self.match.team_info(1),
+            {"Name": "Ravens", "Score": 4, "Players": ["Corvid"]},
+        )
+        self.assertEqual(
+            self.match.rosters[1], {"Talon": {"Tracker": "t"}, "Plume": {}}
+        )
+
+    def test_active_set_keeps_roster_order_and_survives_removal(self):
+        self.assertTrue(self.match.set_player_active(1, "Talon", False))
+        self.assertEqual(self.match.team_info(1)["Players"], ["Plume"])
+        self.assertTrue(self.match.set_player_active(1, "Talon", True))
+        self.assertEqual(self.match.team_info(1)["Players"], ["Talon", "Plume"])
+        self.assertFalse(self.match.set_player_active(1, "Missing", True))
+        self.match.set_player_active(1, "Plume", False)
+        self.assertTrue(self.match.remove_player(1, "Plume"))
+        self.assertEqual(list(self.match.rosters[0]), ["Talon"])
+
+
+class TeamSourceTests(unittest.TestCase):
+    def csv_source(self, text):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "League.csv"
+        path.write_text(text, encoding="utf-8")
+        return CsvTeamSource(path)
+
+    def test_csv_extra_columns_become_player_metadata(self):
+        source = self.csv_source(
+            "Team,Player,Tracker\n"
+            "Ravens,Corvid,\n"
+            "Gryphons, Talon ,https://example.com/talon\n"
+            "Gryphons,Plume,\n"
+            ",Nobody,\n"
+        )
+        self.assertEqual(source.fetch_teams(), ["Gryphons", "Ravens"])
+        self.assertEqual(
+            source.fetch_roster("Gryphons"),
+            {"Talon": {"Tracker": "https://example.com/talon"}, "Plume": {}},
+        )
+
+    def test_csv_failures_return_fallbacks_with_an_error(self):
+        missing = self.csv_source("Team,Player\n")
+        missing.path.unlink()
+        for source, message in (
+            (self.csv_source("Name,Player\nGryphons,Talon\n"), "headings"),
+            (missing, "No such file"),
+        ):
+            with self.subTest(message=message), self.assertLogs(logger, "ERROR"):
+                self.assertEqual(source.fetch_teams(), [])
+                self.assertIn(message, source.error)
+                self.assertIsNone(source.fetch_roster("Gryphons"))
+        with self.assertLogs(logger, "ERROR"):
+            self.assertIsNone(self.csv_source("Team,Player\n").fetch_roster("Ravens"))
+
+    def test_any_failure_in_a_source_is_caught_and_cleared_on_success(self):
+        class FlakySource(TeamSource):
+            fail = True
+
+            def teams(self):
+                if self.fail:
+                    raise ConnectionError("league site offline")
+                return ["Gryphons"]
+
+            def roster(self, team):
+                return ["not", "a", "roster"]
+
+        source = FlakySource("League")
+        with self.assertLogs(logger, "ERROR"):
+            self.assertEqual(source.fetch_teams(), [])
+            self.assertIn("league site offline", source.error)
+            self.assertIsNone(source.fetch_roster("Gryphons"))
+        source.fail = False
+        self.assertEqual(source.fetch_teams(), ["Gryphons"])
+        self.assertIsNone(source.error)
+
+
 class StateManagerTests(unittest.TestCase):
     def setUp(self):
         self.state = StateManager("Valorant")
+
+    def test_max_players_caps_the_active_set(self):
+        state = StateManager("MarvelRivals")
+        match = state.match_info
+        match.load_team(1, "Gryphons", {f"P{number}": {} for number in range(7)})
+        self.assertEqual(match.players[0], ["P0", "P1", "P2", "P3", "P4", "P5"])
+        self.assertFalse(match.set_player_active(1, "P6", True))
+        match.add_player(1, "Walk In")
+        self.assertIn("Walk In", match.rosters[0])
+        self.assertNotIn("Walk In", match.players[0])
+        state.load_game("Valorant")
+        self.assertEqual(match.players[0], ["P0", "P1", "P2", "P3", "P4"])
 
     def test_initial_game_and_match(self):
         self.assertIsInstance(self.state.game_info, GameInfo)
