@@ -4,6 +4,8 @@ from urllib.request import Request, urlopen
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
+from app.classes.team_sources.registry import team_source_names
+
 main = Blueprint("main", __name__, url_prefix="/api")
 control = Blueprint("control", __name__)
 GAME_DIR = Path(__file__).resolve().parent / "json"
@@ -16,12 +18,27 @@ def available_games():
 
 def state_data():
     state = current_app.extensions["state_manager"]
+    source_teams = state.team_source.fetch_teams()
     return {
         "game": state.game_info.name,
         "game_key": state.game_key,
+        "max_players": state.game_info.max_players,
         "games": available_games(),
         "scene": state.current_scene,
         "teams": [state.match_info.team_info(1), state.match_info.team_info(2)],
+        "rosters": [
+            [
+                {"name": player, "metadata": metadata}
+                for player, metadata in roster.items()
+            ]
+            for roster in state.match_info.rosters
+        ],
+        "team_source": {
+            "name": state.team_source.name,
+            "teams": source_teams,
+            "error": state.team_source.error,
+        },
+        "team_sources": team_source_names(),
         "ban_options": state.game_info.ban_options(),
         "bans": state.bans,
         "components": {
@@ -127,6 +144,8 @@ def update_state():
                     state.disable_component if component[2] else state.enable_component
                 )
                 operation(scene_name, name)
+            elif action == "select_team_source":
+                state.select_team_source(required_text(data, "source"))
             elif action == "swap_sides":
                 match.swap_sides()
             elif action in ("add_ban", "remove_ban"):
@@ -135,7 +154,13 @@ def update_state():
                     required_text(data, "name"),
                     remove=action == "remove_ban",
                 )
-            elif action in ("update_team", "add_player", "remove_player"):
+            elif action in (
+                "update_team",
+                "load_source_team",
+                "add_player",
+                "remove_player",
+                "set_player_active",
+            ):
                 team = data.get("team")
                 if type(team) is not int or team not in (1, 2):
                     raise ValueError("Team must be 1 or 2.")
@@ -154,10 +179,23 @@ def update_state():
                         match.update_team_name(team, name)
                     if "score" in data:
                         match.update_team_score(team, score)
+                elif action == "load_source_team":
+                    state.load_source_team(team, required_text(data, "name"))
                 else:
                     player = required_text(data, "player")
                     if action == "add_player":
                         match.add_player(team, player)
+                    elif action == "set_player_active":
+                        active = data.get("active")
+                        if type(active) is not bool:
+                            raise ValueError("Active must be true or false.")
+                        if player not in match.rosters[team - 1]:
+                            raise ValueError("Player is no longer on this team.")
+                        if not match.set_player_active(team, player, active):
+                            raise ValueError(
+                                f"Only {match.max_players} players can be active. "
+                                "Bench a player first."
+                            )
                     elif not match.remove_player(team, player):
                         raise ValueError("Player is no longer on this team.")
             else:
