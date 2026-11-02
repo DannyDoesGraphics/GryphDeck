@@ -3,9 +3,13 @@ import json
 if __package__:
     from .GameInfo import GameInfo
     from .MatchInfo import MatchInfo
+    from .team_sources.ManualTeamSource import ManualTeamSource
+    from .team_sources.registry import load_team_source
 else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
+    from team_sources.ManualTeamSource import ManualTeamSource
+    from team_sources.registry import load_team_source
 
 
 class StateManager:
@@ -14,7 +18,8 @@ class StateManager:
         self.game_key = game_name
         self.current_scene = "idle"
 
-        self.match_info = MatchInfo()
+        self.match_info = MatchInfo(self.game_info.max_players)
+        self.team_source = ManualTeamSource()
         self.bans = {"map": [], "hero": []}
 
         self.current_idle_components = []  # (component_name, position, enabled)
@@ -24,7 +29,10 @@ class StateManager:
         self.load_components(self.game_info)
 
     def load_game(self, game_name):
-        """Reset game components and bans while retaining teams and selected scene."""
+        """Reset game components and bans while retaining teams and selected scene.
+
+        Players beyond the new game's max_players are benched.
+        """
         replacement = StateManager(game_name)
         self.game_info = replacement.game_info
         self.game_key = replacement.game_key
@@ -32,6 +40,19 @@ class StateManager:
         self.current_pregame_components = replacement.current_pregame_components
         self.current_ingame_components = replacement.current_ingame_components
         self.bans = replacement.bans
+        self.match_info.max_players = self.game_info.max_players
+        for players in self.match_info.players:
+            del players[self.match_info.max_players :]
+
+    def select_team_source(self, name):
+        """Switching sources keeps the current teams until one is loaded."""
+        self.team_source = load_team_source(name)
+
+    def load_source_team(self, teamNum, team_name):
+        roster = self.team_source.fetch_roster(team_name)
+        if roster is None:
+            raise ValueError(self.team_source.error)
+        self.match_info.load_team(teamNum, team_name, roster)
 
     def update_ban(self, kind, name, *, remove=False):
         options = self.game_info.ban_options()
