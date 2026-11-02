@@ -3,6 +3,8 @@ from pathlib import Path
 
 from .TeamSource import TeamSource
 
+TEAM_DIR = Path(__file__).resolve().parent.parent.parent / "teams"
+
 
 class CsvTeamSource(TeamSource):
     """Importing of team rosters via CSV files."""
@@ -10,6 +12,10 @@ class CsvTeamSource(TeamSource):
     def __init__(self, path):
         super().__init__(Path(path).stem)
         self.path = Path(path)
+
+    @classmethod
+    def sources(cls):
+        return [cls(path) for path in sorted(TEAM_DIR.glob("*.csv"))]
 
     def teams(self):
         return self.rosters()

@@ -33,7 +33,7 @@ class ControlTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         (Path(directory.name) / "League.csv").write_text(text, encoding="utf-8")
         team_dir = patch(
-            "app.classes.team_sources.registry.TEAM_DIR", Path(directory.name)
+            "app.classes.team_sources.CsvTeamSource.TEAM_DIR", Path(directory.name)
         )
         team_dir.start()
         self.addCleanup(team_dir.stop)
@@ -41,7 +41,7 @@ class ControlTests(unittest.TestCase):
     def test_csv_source_loads_teams_that_stay_editable(self):
         self.use_team_csv("Team,Player,Tracker\nGryphons,Talon,t\nGryphons,Plume,\n")
         state = self.action("select_team_source", source="League")
-        self.assertEqual(state["team_sources"], ["Manual", "League"])
+        self.assertEqual(state["team_sources"], ["League", "Manual"])
         self.assertEqual(state["team_source"]["teams"], ["Gryphons"])
         self.action("load_source_team", team=1, name="Gryphons")
         self.action("set_player_active", team=1, player="Talon", active=False)

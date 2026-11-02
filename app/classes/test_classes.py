@@ -7,17 +7,20 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 if __package__:
     from .GameInfo import GameInfo
     from .MatchInfo import MatchInfo
     from .StateManager import StateManager
+    from .team_sources import registry
     from .team_sources.CsvTeamSource import CsvTeamSource
     from .team_sources.TeamSource import TeamSource, logger
 else:
     from GameInfo import GameInfo
     from MatchInfo import MatchInfo
     from StateManager import StateManager
+    from team_sources import registry
     from team_sources.CsvTeamSource import CsvTeamSource
     from team_sources.TeamSource import TeamSource, logger
 
@@ -179,6 +182,17 @@ class TeamSourceTests(unittest.TestCase):
                 self.assertIsNone(source.fetch_roster("Gryphons"))
         with self.assertLogs(logger, "ERROR"):
             self.assertIsNone(self.csv_source("Team,Player\n").fetch_roster("Ravens"))
+
+    def test_broken_source_files_are_skipped(self):
+        broken = Path(registry.__file__).parent / "BrokenTeamSource.py"
+        broken.write_text("raise RuntimeError('broken source')\n")
+        self.addCleanup(broken.unlink)
+        with (
+            patch.object(sys, "dont_write_bytecode", True),
+            self.assertLogs(registry.logger, "ERROR") as logs,
+        ):
+            self.assertIn("Manual", registry.team_source_names())
+        self.assertIn("BrokenTeamSource", logs.output[0])
 
     def test_any_failure_in_a_source_is_caught_and_cleared_on_success(self):
         class FlakySource(TeamSource):

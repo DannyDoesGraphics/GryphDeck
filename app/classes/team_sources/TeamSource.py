@@ -12,6 +12,11 @@ class TeamSource(ABC):
         self.name = name
         self.error = None
 
+    @classmethod
+    def sources(cls):
+        """Return one instance per entry this source offers in the team source list."""
+        return [cls()]
+
     @abstractmethod
     def teams(self):
         """Return an iterable of team names."""
