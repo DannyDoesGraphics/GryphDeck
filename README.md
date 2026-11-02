@@ -37,6 +37,28 @@ from `app/json` in the game selector.
   players individually. **Swap sides** calls `MatchInfo.swap_sides()` to swap
   the saved team names, scores, and rosters.
 
+### Team sources
+
+A team source supplies each team's roster. Each team has 2 components, the `players` and `rosters`. Roster covers every possible person that **COULD** be on the team ie subs. However, players covers the subset of those who are actively playing at the time and will appear on any relevant overlay UI.
+
+Team sources are modular by their nature. Syntax errors, api changes, or breaking updates will gracefully fail. This design maximizing robustness to handle rapidly changing APIs across the board.
+
+> Note: Future work here can be done to generalize this across everything so we have per-game dedicated handles which can gracefully fail.
+
+A team source supplies each team's roster. Every source subclasses
+`TeamSource` in `app/classes/team_sources/` and implements `teams()`, which
+lists team names, and `roster(team)`, which returns `{player: metadata}`. New
+sources such as a league API only need those two methods.
+
+Either method may raise. The app always calls them through `fetch_teams()` and
+`fetch_roster()`, which log the failure, show it under the source picker, and
+leave the current teams unchanged.
+
+- **Manual** is the default and supplies no teams.
+- **CSV** sources are read from `app/teams/*.csv`. Each file needs `Team` and
+  `Player` columns. Any other column, such as `Tracker` or `Statlocker`, becomes
+  player metadata in `/api/state`. See `app/teams/Example.csv`.
+
 The page modifies one `StateManager` per Flask app instance, shared by clients.
 State is held in memory and resets when the server restarts; use one server
 process for this local control workspace. Refresh another open control page to
