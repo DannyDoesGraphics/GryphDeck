@@ -151,3 +151,10 @@ footer > span:first-child { font-family: "Antonio", sans-serif; letter-spacing: 
 .ban-form button { padding-left: 10px; padding-right: 10px; }
 .ban-feedback { margin-top: 8px; }
 .ban-feedback.error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
+.team-source-form { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.team-source-form .hint { margin-top: 8px; }
+.team-source-form .error { color: color-mix(in srgb, var(--red) 45%, var(--light-gray)); }
+.source-team-form { margin-bottom: 14px; }
+.player.benched .player-name { opacity: .55; }
+.player-active { border-radius: 6px; border: 2px solid var(--border); background: var(--surface-inset); color: var(--light-gray); padding: 6px 8px; font-size: .75rem; }
+.player-active[aria-pressed=true] { border-color: var(--accent-gold); color: var(--accent-gold); }
